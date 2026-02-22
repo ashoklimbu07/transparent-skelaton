@@ -9,6 +9,5 @@ export declare const scriptFormatterPrompt: (script: string) => string;
 export declare const scriptFormatterConfig: {
     model: string;
     temperature: number;
-    maxOutputTokens: number;
 };
 //# sourceMappingURL=formatmasterprompt.d.ts.map

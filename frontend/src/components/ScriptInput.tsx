@@ -4,12 +4,15 @@ interface ScriptInputProps {
   script: string;
   setScript: (value: string) => void;
   formattedScript: string;
+  brollPromptsJson: string;
+  brollPromptsPlain: string;
   onFormat: () => void;
   onGenerateClick: () => void;
   onGenerateBroll: () => void;
   isFormatting: boolean;
   isGenerating: boolean;
   showFormattedOutput: boolean;
+  showBrollOutput: boolean;
   showStyleOptions: boolean;
   selectedStyle: BrollStyle;
   setSelectedStyle: (style: BrollStyle) => void;
@@ -27,12 +30,15 @@ export const ScriptInput = ({
   script,
   setScript,
   formattedScript,
+  brollPromptsJson,
+  brollPromptsPlain,
   onFormat,
   onGenerateClick,
   onGenerateBroll,
   isFormatting,
   isGenerating,
   showFormattedOutput,
+  showBrollOutput,
   showStyleOptions,
   selectedStyle,
   setSelectedStyle,
@@ -107,6 +113,33 @@ export const ScriptInput = ({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
+  };
+
+  // B-roll download functions
+  const downloadBrollJSON = () => {
+    // Download JSON format (JSON objects separated by blank lines)
+    const blob = new Blob([brollPromptsJson], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'broll-prompts-json.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadBrollPlainText = () => {
+    // Download plain text format (human-readable)
+    const blob = new Blob([brollPromptsPlain], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'broll-prompts-text.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   // File upload handler
@@ -379,7 +412,7 @@ export const ScriptInput = ({
       </div>
 
       {/* Generate B-Roll Button (appears below both outputs when style is selected) */}
-      {showStyleOptions && selectedStyle && (
+      {showStyleOptions && selectedStyle && !showBrollOutput && (
         <button
           type="button"
           onClick={onGenerateBroll}
@@ -396,12 +429,79 @@ export const ScriptInput = ({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Generating...
+              Generating B-Roll Prompts...
             </span>
           ) : (
             'Generate B-Roll'
           )}
         </button>
+      )}
+
+      {/* B-roll Output Section */}
+      {showBrollOutput && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl">
+            <h3 className="text-xs font-bold text-purple-700 uppercase tracking-wider mb-3">
+              ✓ B-Roll Prompts Generated
+            </h3>
+            {(() => {
+              // Count only top-level B-roll scenes (those with scene_id)
+              // Split by double newlines and count valid JSON objects with scene_id
+              const sceneBlocks = brollPromptsJson.split('\n\n').filter(block => block.trim());
+              let sceneCount = 0;
+              
+              sceneBlocks.forEach(block => {
+                try {
+                  const parsed = JSON.parse(block);
+                  // Only count if it has scene_id (top-level scene object)
+                  if (parsed.scene_id !== undefined) {
+                    sceneCount++;
+                  }
+                } catch (e) {
+                  // Skip invalid JSON blocks
+                }
+              });
+              
+              return (
+                <div className="space-y-4">
+                  {/* Completion Message */}
+                  <div className="bg-purple-100 border-purple-200 border rounded-lg p-3">
+                    <p className="text-sm font-semibold mb-1 text-purple-800">
+                      ✓ B-Roll generation completed!
+                    </p>
+                    <p className="text-xs text-purple-700">
+                      {sceneCount} B-Roll generated
+                    </p>
+                  </div>
+
+                  {/* Download Buttons - JSON and Plain Text */}
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={downloadBrollJSON}
+                      className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-lg transition-all duration-200 active:scale-[0.98] shadow-md"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Download B-Roll JSON (TXT)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={downloadBrollPlainText}
+                      className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-white border-2 border-purple-600 text-purple-700 hover:bg-purple-50 text-sm font-bold rounded-lg transition-all duration-200 active:scale-[0.98]"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Download B-Roll Text (TXT)
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
       )}
 
       {/* Format Confirmation Dialog */}

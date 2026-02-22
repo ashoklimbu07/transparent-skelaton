@@ -3,13 +3,13 @@ import { scriptFormatterPrompt, scriptFormatterConfig } from '../prompts/formatm
 
 export const geminiService = {
   formatScript: async (script: string): Promise<string> => {
-    console.log('🔍 Checking Gemini API Key:', process.env.GEMINI_API_KEY ? 'Present ✅' : 'Missing ❌');
+    console.log('🔍 Checking Gemini API Key for Formatting:', process.env.GEMINI_API_KEY_FORMAT ? 'Present ✅' : 'Missing ❌');
     
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY is not configured in .env file');
+    if (!process.env.GEMINI_API_KEY_FORMAT) {
+      throw new Error('GEMINI_API_KEY_FORMAT is not configured in .env file');
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_FORMAT);
     
     // Define JSON schema for structured output
     // Create properties for scene_1 through scene_30

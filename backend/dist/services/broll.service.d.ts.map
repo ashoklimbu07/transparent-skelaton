@@ -1,0 +1,1 @@
+{"version":3,"file":"broll.service.d.ts","sourceRoot":"","sources":["../../src/services/broll.service.ts"],"names":[],"mappings":"AA+IA;;GAEG;AACH,eAAO,MAAM,YAAY;IACvB;;;;OAIG;mCACkC,MAAM,CAAC,MAAM,EAAE,MAAM,CAAC,KAAG,OAAO,CAAC;QAAE,QAAQ,EAAE,MAAM,CAAC;QAAC,SAAS,EAAE,MAAM,CAAA;KAAE,CAAC;CAuF/G,CAAC"}

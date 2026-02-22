@@ -1,1 +1,1 @@
-{"version":3,"file":"formatmasterprompt.d.ts","sourceRoot":"","sources":["../../src/prompts/formatmasterprompt.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAEH,eAAO,MAAM,qBAAqB,GAAI,QAAQ,MAAM,KAAG,MA0BtD,CAAC;AAEF;;GAEG;AACH,eAAO,MAAM,qBAAqB;;;;CAIjC,CAAC"}
+{"version":3,"file":"formatmasterprompt.d.ts","sourceRoot":"","sources":["../../src/prompts/formatmasterprompt.ts"],"names":[],"mappings":"AAAA;;;GAGG;AAEH,eAAO,MAAM,qBAAqB,GAAI,QAAQ,MAAM,KAAG,MAyCtD,CAAC;AAEF;;GAEG;AACH,eAAO,MAAM,qBAAqB;;;CAGjC,CAAC"}

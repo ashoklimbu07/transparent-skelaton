@@ -7,9 +7,12 @@ function App() {
     script, 
     setScript, 
     formattedScript,
+    brollPromptsJson,
+    brollPromptsPlain,
     isFormatting,
     isGenerating, 
     showFormattedOutput,
+    showBrollOutput,
     showStyleOptions,
     selectedStyle,
     setSelectedStyle,
@@ -34,12 +37,15 @@ function App() {
           script={script} 
           setScript={setScript} 
           formattedScript={formattedScript}
+          brollPromptsJson={brollPromptsJson}
+          brollPromptsPlain={brollPromptsPlain}
           onFormat={handleFormat}
           onGenerateClick={handleGenerateClick}
           onGenerateBroll={handleGenerateBroll}
           isFormatting={isFormatting}
           isGenerating={isGenerating} 
           showFormattedOutput={showFormattedOutput}
+          showBrollOutput={showBrollOutput}
           showStyleOptions={showStyleOptions}
           selectedStyle={selectedStyle}
           setSelectedStyle={setSelectedStyle}
