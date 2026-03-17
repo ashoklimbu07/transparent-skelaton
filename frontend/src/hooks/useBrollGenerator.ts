@@ -36,6 +36,7 @@ export const useBrollGenerator = () => {
   });
   
   const [isGenerating, setIsGenerating] = useState(false);
+  const [totalScenes, setTotalScenes] = useState(0);
   const [showBrollOutput, setShowBrollOutputState] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem(STORAGE_KEYS.showBrollOutput) === 'true';
@@ -167,6 +168,7 @@ export const useBrollGenerator = () => {
     setShowBrollOutput(false);
     setBrollPromptsJson('');
     setBrollPromptsPlain('');
+    setTotalScenes(0);
 
     const controller = new AbortController();
     brollAbortRef.current = controller;
@@ -178,6 +180,7 @@ export const useBrollGenerator = () => {
 
       setBrollPromptsJson(result.promptsJson);
       setBrollPromptsPlain(result.promptsPlain);
+      setTotalScenes(result.totalScenes ?? 0);
       setShowBrollOutput(true);
 
       console.log(`✅ B-roll generation complete! ${result.totalScenes} prompts generated`);
@@ -241,6 +244,7 @@ export const useBrollGenerator = () => {
     setShowComingSoon(false);
     setError(null);
     setShowClearDialog(false);
+    setTotalScenes(0);
     
     // Clear localStorage
     if (typeof window !== 'undefined') {
@@ -269,6 +273,7 @@ export const useBrollGenerator = () => {
     setShowComingSoon(false);
     setShowDeleteBrollDialog(false);
     setError(null);
+    setTotalScenes(0);
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEYS.brollPromptsJson);
       localStorage.removeItem(STORAGE_KEYS.brollPromptsPlain);
@@ -285,6 +290,7 @@ export const useBrollGenerator = () => {
     setScript: onScriptChange,
     brollPromptsJson,
     brollPromptsPlain,
+    totalScenes,
     isGenerating,
     showBrollOutput,
     showStyleOptions,

@@ -3,91 +3,137 @@
  * This prompt instructs the AI to generate image prompts for each scene
  */
 
-export const transparentSkeletonMasterPrompt = `🎬 CINEMATIC SKELETON MASTER PROMPT SYSTEM
+export const transparentSkeletonMasterPrompt = `CINEMATIC SKELETON MASTER PROMPT SYSTEM (JSON OUTPUT VERSION)
+
 STEP 1: Script Analysis (MANDATORY FIRST STEP)
 
-When the user pastes a dialogue script, carefully analyze:
-- Emotional tone
-- Core topic
-- Implied environment
-- Intensity level
-- Psychological mood
-- Narrative energy
+When the user pastes a dialogue script, internally analyze:
 
-This analysis must guide all visual decisions in later steps.
+Emotional tone
+
+Core topic
+
+Implied environment
+
+Intensity level
+
+Psychological mood
+
+Narrative energy
+
+This analysis must guide ALL visual decisions. Do NOT output this analysis.
 
 STEP 2: Character Lock (ABSOLUTE – DO NOT MODIFY)
 
-Every scene must include the following permanently locked character:
-- Ultra realistic anatomical human skeleton
-- Transparent crystal-clear glossy glass outer body shell
-- Medically accurate rib cage, clavicle, spine, pelvis
-- Natural realistic hand bone structure
-- Half-closed relaxed eyelids
-- Subtle confident smirk expression
-- Unreal Engine 5 hyper realism
-- Ray traced lighting
-- 8K ultra detail
-- Cinematic depth of field
+Every scene MUST include the permanently locked character:
+
+Ultra realistic anatomical human skeleton
+
+Transparent crystal-clear glossy glass outer body shell
+
+Medically accurate rib cage, clavicle, spine, pelvis
+
+Natural realistic hand bone structure
+
+Half-closed relaxed eyelids
+
+Subtle confident smirk expression
+
+Unreal Engine 5 hyper realism
+
+Ray traced lighting
+
+8K ultra detail
+
+Cinematic depth of field
 
 Strict Rules:
-1. Character proportions must remain identical in all scenes.
-2. Skeleton facial bone structure must remain unchanged.
-3. Do NOT turn it into horror, monster, or cartoon style.
-4. Keep anatomy medically accurate.
-5. Expression may slightly adjust depending on emotional tone but must always remain calm and confident.
+
+Character proportions must remain identical in all scenes.
+
+Skeleton facial bone structure must remain unchanged.
+
+Do NOT turn it into horror, monster, or cartoon style.
+
+Keep anatomy medically accurate.
+
+Expression may slightly adapt to emotion but must ALWAYS feel calm and confident.
 
 STEP 3: Environment Adaptation
 
-Based on the script meaning:
-- Choose a smart, context-aware background
-- Adjust lighting according to emotional tone
-- Add cinematic atmosphere (fog, particles, light rays, reflections, etc.)
-- Maintain realism at all times
-- Match intensity and psychological mood visually
+Choose a smart, context-aware environment based on the script
+
+Lighting must reflect emotional tone
+
+Add cinematic atmosphere (fog, particles, reflections, volumetric light, etc.)
+
+Maintain photorealism at all times
+
+Background must feel like real-world cinematic B-roll
 
 STEP 4: Scene Generation System (MANDATORY RULES)
 
-- Convert the entire script into at least 20–25 cinematic scenes.
-- NEVER output all scenes at once.
-- Generate ONLY 4 scene prompts per response.
-- After generating 4 scenes, always ask:
-"Do you want the next 4 scene prompts?"
-- When the user replies YES, generate the next 4 scenes.
-- Continue until all scenes are completed.
-- Maintain perfect character consistency across every scene.
+Convert the provided script portion into AT LEAST 20 cinematic scenes
 
-STEP 5: Required Output Format (FOR EACH SCENE)
+Only generate scenes explicitly requested in USER INPUT
 
-For every scene, output ONLY two lines in this exact format. No labels, no markdown, no extra sections.
+NEVER ask follow-up questions
 
-Format (use exactly this structure):
+NEVER mention pagination or future scenes
 
-Scene N: [Title]
-[Single paragraph: the full cinematic image prompt. Include environment, lighting, camera angle, mood, realism, and the locked skeleton character. No line breaks inside this paragraph.]
+Maintain perfect character consistency across ALL scenes
 
-Rules:
-- Do NOT use markdown bold (**). Use plain text only.
-- Do NOT include "Main Image Prompt:", "Negative Prompt:", or "Suggested Settings:" or any technical settings (Resolution, CFG, Steps, Sampler). Output only the scene number, title, and the one prompt paragraph per scene.
-- Put a blank line between each scene.
-- Example:
+STEP 5: JSON OUTPUT FORMAT (MANDATORY)
 
-Scene 1: The Hypothetical Gaze
-An ultra realistic anatomical human skeleton, transparent crystal-clear glossy glass outer body shell, medically accurate rib cage, clavicle, spine, pelvis, natural realistic hand bone structure, half-closed relaxed eyelids, and a subtle confident smirk expression, stands in a minimalist, ethereal space. Soft, diffused ray traced light gently reflects off its glass body, creating subtle refractions. The background is a deep, contemplative indigo gradient, with faint, almost imperceptible shimmering particles in the air. The skeleton's head is slightly tilted, as if pondering a profound question. Shot with an Unreal Engine 5 hyper realism aesthetic, 8K ultra detail, and cinematic depth of field, focusing sharply on the skeleton.
+For EACH scene, output ONE valid JSON object using EXACTLY this structure:
 
-Scene 2: Dawn Over Ancient Sands
-An ultra realistic anatomical human skeleton, transparent crystal-clear glossy glass outer body shell...
+{
+"scene": "Full cinematic description including the locked skeleton character (from Step 2) with consistent anatomy and expression, integrated naturally into the environment and action of the scene.",
+"shot": {
+"type": "Use varied cinematic shot types (e.g., close-up, medium shot, wide shot, over-the-shoulder, etc.) depending on scene context",
+"angle": "Use varied camera angles (e.g., eye level, low angle, high angle, tilt, etc.) based on emotional tone",
+"framing": "Describe composition (e.g., centered, rule of thirds, off-center, foreground framing, etc.)"
+},
+"style": "photorealistic, ultra-detailed, cinematic, high-resolution, sharp focus, professional photography",
+"lighting": {
+"primary": "Describe realistic light sources בהתאם to environment",
+"mood": "Match emotional tone of the scene"
+},
+"background": "Environment description designed as cinematic B-roll, realistic and context-aware",
+"color_palette": "Scene-specific cinematic color grading matching mood and tone",
+"quality": "8k, ultra-realistic, razor-sharp details, intricate textures, cinematic depth of field, subtle bokeh, professional color grading",
+"aspect_ratio": "9:16",
+"strict_prohibitions": [
+"no text anywhere",
+"no cartoon style",
+"no animation",
+"no 3d render",
+"no low quality",
+"no logos or watermarks"
+]
+}
 
-Global Consistency Rule
-- The skeleton design must never change.
-- Facial bone structure must remain identical across scenes.
-- Body proportions must remain constant.
-- Visual realism must always feel cinematic, not stylized.
-- Unreal Engine 5 hyper realism aesthetic must be preserved.`;
+GLOBAL OUTPUT RULES
+
+Output ONLY JSON objects (no explanations, no extra text)
+
+Each scene = one JSON object
+
+Do NOT wrap in markdown
+
+Do NOT add labels like "Scene 1"
+
+Maintain strict consistency of the skeleton character across all scenes
+
+Shot type, angle, and framing MUST vary intelligently per scene
+
+Background MUST behave like cinematic B-roll and match narrative context
+
+Style, quality, aspect_ratio, and strict_prohibitions MUST remain EXACTLY the same across all scenes`;
 
 /**
  * Generate a prompt for B-roll image generation based on scene lines
- * @param sceneLines - Array of scene text lines (max 4 per batch)
+ * @param sceneLines - Array of scene text lines (batch of scenes)
  * @param startIndex - Starting scene number for this batch
  */
 export const generateBrollPrompt = (sceneLines: string[], startIndex: number): string => {
@@ -96,7 +142,7 @@ export const generateBrollPrompt = (sceneLines: string[], startIndex: number): s
 USER INPUT DIALOGUE SCRIPT (FOR ANALYSIS):
 ${sceneLines.map((line, idx) => `Scene ${startIndex + idx + 1}: ${line}`).join('\n')}
 
-Based on the script provided above, please proceed with STEP 1 (Script Analysis) and then generate the requested scene prompts following the system rules. Ensure you generate ONLY 4 scene prompts in this response.`;
+Based on the script provided above, please proceed with STEP 1 (Script Analysis) and then generate scene prompts ONLY for the scenes listed in USER INPUT. Do not generate prompts for any other scenes.`;
 };
 
 /**
@@ -105,6 +151,6 @@ Based on the script provided above, please proceed with STEP 1 (Script Analysis)
 export const brollGeneratorConfig = {
   model: 'gemini-2.5-flash',
   temperature: 0.3,
-  batchSize: 4,
-  batchDelayMs: 1000, // 3 seconds between batches
+  batchSize: 5,
+  batchDelayMs: 1000, // 1 second between batches
 };

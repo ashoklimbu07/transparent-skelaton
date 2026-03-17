@@ -2,20 +2,69 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { generateBrollPrompt, brollGeneratorConfig } from '../prompts/brollmasterprompt.js';
 
 /**
+ * Collect all configured B-roll Gemini API keys from environment.
+ * Supports multiple keys like GEMINI_API_KEY_BROLL1, GEMINI_API_KEY_BROLL2, etc.
+ */
+function getBrollApiKeys(): string[] {
+  const keys: string[] = [];
+  // Backward-compatible single key
+  if (process.env.GEMINI_API_KEY_BROLL) {
+    keys.push(process.env.GEMINI_API_KEY_BROLL);
+  }
+  // Numbered keys
+  for (let i = 1; i <= 10; i++) {
+    const key = (process.env as Record<string, string | undefined>)[`GEMINI_API_KEY_BROLL${i}`];
+    if (key) keys.push(key);
+  }
+  // De-duplicate just in case
+  return Array.from(new Set(keys));
+}
+
+function normalizePromptBlocks(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/\r\n/g, '\n')
+    .trim()
+    // ensure exactly one blank line (two \n) between blocks
+    .replace(/\n{3,}/g, '\n\n');
+}
+
+/**
  * Clean AI output to final format: "Scene N: Title" then prompt only. No markdown, no Negative Prompt or Suggested Settings.
  * Drops any leading content (e.g. script analysis) before the first scene.
  */
 function cleanBrollOutput(raw: string): string {
-  let text = raw.replace(/\*\*/g, '').trim();
+  let text = raw.replace(/\r\n/g, '\n').replace(/\*\*/g, '').trim();
   const firstScene = text.match(/\bScene \d+:/i);
   if (firstScene && firstScene.index != null && firstScene.index > 0) {
     text = text.slice(firstScene.index).trim();
   }
+  // Strip any trailing interactive questions like
+  // "Do you want the next 4 scene prompts?"
+  text = text
+    .split('\n')
+    .filter(
+      (line) =>
+        !/do you want the next/i.test(line) &&
+        !/next 4 scene prompts/i.test(line),
+    )
+    .join('\n')
+    .trim();
   const hasOldFormat =
     text.includes('Main Image Prompt:') ||
     text.includes('Negative Prompt:') ||
     text.includes('Suggested Settings:');
-  if (!hasOldFormat) return text;
+  if (!hasOldFormat) {
+    // Normalize spacing so there is exactly one blank line between each scene block
+    const simpleBlocks = text
+      .split(/(?=Scene \d+:)/i)
+      .map((b) => b.trim())
+      .filter(Boolean);
+    if (simpleBlocks.length > 0) {
+      return normalizePromptBlocks(simpleBlocks.join('\n\n'));
+    }
+    return normalizePromptBlocks(text);
+  }
 
   const sceneBlocks = text.split(/(?=Scene \d+:)/i).filter((b) => b.trim());
   const out: string[] = [];
@@ -37,7 +86,14 @@ function cleanBrollOutput(raw: string): string {
     }
     if (prompt) out.push(`${title}\n${prompt}`);
   }
-  return out.join('\n\n');
+  // Join cleaned scenes with a single blank line between each prompt
+  const cleanedScenes = out.join('\n\n');
+  const normalizedBlocks = cleanedScenes
+    .split(/(?=Scene \d+:)/i)
+    .map((b) => b.trim())
+    .filter(Boolean);
+  const joined = normalizedBlocks.length > 0 ? normalizedBlocks.join('\n\n') : cleanedScenes;
+  return normalizePromptBlocks(joined);
 }
 
 /** Sleep for ms, or reject if signal is aborted (so generation can stop when client cancels). */
@@ -132,10 +188,10 @@ export const brollService = {
     signal?: AbortSignal
   ): Promise<{ jsonText: string; plainText: string }> => {
     console.log('🎬 Starting B-roll generation...');
-    console.log('🔍 Checking Gemini API Key for B-Roll:', process.env.GEMINI_API_KEY_BROLL ? 'Present ✅' : 'Missing ❌');
-    
-    if (!process.env.GEMINI_API_KEY_BROLL) {
-      throw new Error('GEMINI_API_KEY_BROLL is not configured in .env file');
+    const apiKeys = getBrollApiKeys();
+    console.log(`🔍 B-Roll Gemini API keys detected: ${apiKeys.length}`);
+    if (apiKeys.length === 0) {
+      throw new Error('No Gemini API keys configured for B-roll. Please set GEMINI_API_KEY_BROLL or GEMINI_API_KEY_BROLL1..N in .env');
     }
 
     // Convert scenes object to array of [key, value] pairs and sort by scene number
@@ -150,62 +206,94 @@ export const brollService = {
     const totalScenes = sceneEntries.length;
     console.log(`📊 Total scenes to process: ${totalScenes}`);
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY_BROLL);
-    const model = genAI.getGenerativeModel({ 
-      model: brollGeneratorConfig.model,
-      generationConfig: {
-        maxOutputTokens: 8192,
-        temperature: brollGeneratorConfig.temperature,
-      }
+    // Create one Gemini model client per API key
+    const models = apiKeys.map((key, index) => {
+      console.log(`🔑 Initializing Gemini client #${index + 1}`);
+      const genAI = new GoogleGenerativeAI(key);
+      return genAI.getGenerativeModel({
+        model: brollGeneratorConfig.model,
+        generationConfig: {
+          maxOutputTokens: 8192,
+          temperature: brollGeneratorConfig.temperature,
+        },
+      });
     });
 
-    let allPromptsText = '';
     const batchSize = brollGeneratorConfig.batchSize;
     const totalBatches = Math.ceil(totalScenes / batchSize);
 
-    // Process in batches
-    for (let i = 0; i < totalScenes; i += batchSize) {
-      if (signal?.aborted) {
-        const err = new Error('Cancelled') as Error & { name: string };
-        err.name = 'AbortError';
-        throw err;
-      }
+    console.log(`📦 Processing in ${totalBatches} batches of up to ${batchSize} scenes each using ${models.length} parallel Gemini clients (round robin).`);
 
-      const batchNumber = Math.floor(i / batchSize) + 1;
-      const batch = sceneEntries.slice(i, i + batchSize);
+    // Prepare batch tasks
+    const batchPromises: Promise<string>[] = [];
+
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      const start = batchIndex * batchSize;
+      const batch = sceneEntries.slice(start, start + batchSize);
       const sceneTexts = batch.map(([_, value]) => value);
-      const startIndex = i;
+      const startIndex = start;
+      const batchNumber = batchIndex + 1;
+      const modelStartIndex = batchIndex % models.length;
 
-      console.log(`\n🔄 Processing batch ${batchNumber}/${totalBatches} (scenes ${startIndex + 1}-${startIndex + batch.length})...`);
+      const task = (async (): Promise<string> => {
+        let attempt = 0;
+        let lastError: unknown = null;
 
-      try {
-        const prompt = generateBrollPrompt(sceneTexts, startIndex);
-        const result = await model.generateContent(prompt);
-        const response = result.response;
-        const text = response.text();
+        while (attempt < models.length) {
+          if (signal?.aborted) {
+            const err = new Error('Cancelled') as Error & { name: string };
+            err.name = 'AbortError';
+            throw err;
+          }
 
-        console.log(`✅ Batch ${batchNumber} response received`);
+          const modelIndex = (modelStartIndex + attempt) % models.length;
+          const model = models[modelIndex]!;
 
-        allPromptsText += text + '\n\n';
+          console.log(
+            `\n🔄 Processing batch ${batchNumber}/${totalBatches} (scenes ${startIndex + 1}-${startIndex + batch.length}) with API key #${modelIndex + 1}, attempt ${attempt + 1}/${models.length}...`,
+          );
 
-        console.log(`✅ Batch ${batchNumber} completed`);
+          try {
+            const prompt = generateBrollPrompt(sceneTexts, startIndex);
+            const result = await model.generateContent(prompt);
+            const response = result.response;
+            const text = response.text();
 
-        // Wait before next batch (except for the last batch); abortable so cancel stops quickly
-        if (i + batchSize < totalScenes) {
-          const delayMs = brollGeneratorConfig.batchDelayMs;
-          const delaySeconds = delayMs / 1000;
-          console.log(`⏳ Waiting ${delaySeconds} seconds before next batch...`);
-          await delay(delayMs, signal);
+            console.log(`✅ Batch ${batchNumber} completed successfully on API key #${modelIndex + 1}`);
+            return text;
+          } catch (error: unknown) {
+            if (error instanceof Error && error.name === 'AbortError') {
+              throw error;
+            }
+            lastError = error;
+            const message = error instanceof Error ? error.message : String(error);
+            console.error(
+              `❌ Error in batch ${batchNumber} using API key #${modelIndex + 1}: ${message}`,
+            );
+            attempt += 1;
+            if (attempt < models.length) {
+              console.log(
+                `🔁 Retrying batch ${batchNumber} with next API key (attempt ${attempt + 1}/${models.length})...`,
+              );
+            }
+          }
         }
-      } catch (error: unknown) {
-        if (error instanceof Error && error.name === 'AbortError') throw error;
-        const message = error instanceof Error ? error.message : String(error);
-        console.error(`❌ Error in batch ${batchNumber}:`, message);
-        throw new Error(`Failed at batch ${batchNumber}/${totalBatches}: ${message}`);
-      }
+
+        const lastMessage =
+          lastError instanceof Error ? lastError.message : String(lastError ?? 'Unknown error');
+        throw new Error(
+          `All API keys failed for batch ${batchNumber}/${totalBatches}: ${lastMessage}`,
+        );
+      })();
+
+      batchPromises.push(task);
     }
 
-    console.log(`\n🎉 B-roll generation complete!`);
+    // Run all batches in parallel and preserve ordering by batch index
+    const batchResults = await Promise.all(batchPromises);
+
+    console.log(`\n🎉 B-roll generation complete across ${totalBatches} batches.`);
+    const allPromptsText = batchResults.join('\n\n');
     const cleaned = cleanBrollOutput(allPromptsText.trim());
     return {
       jsonText: cleaned,

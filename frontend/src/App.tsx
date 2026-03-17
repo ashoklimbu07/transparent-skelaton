@@ -8,6 +8,7 @@ function App() {
     setScript, 
     brollPromptsJson,
     brollPromptsPlain,
+    totalScenes,
     isGenerating, 
     showBrollOutput,
     showStyleOptions,
@@ -38,6 +39,7 @@ function App() {
           setScript={setScript} 
           brollPromptsJson={brollPromptsJson}
           brollPromptsPlain={brollPromptsPlain}
+          totalScenes={totalScenes}
           onGenerateClick={handleGenerateClick}
           onGenerateBroll={handleGenerateBroll}
           onCancelGenerateBroll={cancelGenerateBroll}

@@ -6,6 +6,7 @@ interface ScriptInputProps {
   setScript: (value: string) => void;
   brollPromptsJson: string;
   brollPromptsPlain: string;
+  totalScenes: number;
   onGenerateClick: () => void;
   onGenerateBroll: () => void;
   onCancelGenerateBroll: () => void;
@@ -32,6 +33,7 @@ export const ScriptInput = ({
   setScript,
   brollPromptsJson,
   brollPromptsPlain,
+  totalScenes,
   onGenerateClick,
   onGenerateBroll,
   onCancelGenerateBroll,
@@ -57,9 +59,19 @@ export const ScriptInput = ({
     trimmedLength > 0 && (trimmedLength < 1000 || trimmedLength > 1500);
 
   // B-roll download functions
+  const normalizePromptText = (text: string) => {
+    if (!text) return '';
+    return text
+      .replace(/\r\n/g, '\n') // normalize newlines
+      .trim()
+      // collapse any run of 3+ newlines to exactly 2 (one blank line gap)
+      .replace(/\n{3,}/g, '\n\n');
+  };
+
   const downloadBrollJSON = () => {
-    // Download JSON format (JSON objects separated by blank lines)
-    const blob = new Blob([brollPromptsJson], { type: 'text/plain' });
+    // Download JSON-ish format (prompts separated by a single blank line)
+    const normalizedText = normalizePromptText(brollPromptsJson || brollPromptsPlain);
+    const blob = new Blob([normalizedText], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -72,7 +84,9 @@ export const ScriptInput = ({
 
   const downloadBrollPlainText = () => {
     // Download plain text format (human-readable)
-    const blob = new Blob([brollPromptsPlain], { type: 'text/plain' });
+    // Normalize line breaks so each prompt block is separated by exactly one blank line
+    const normalizedText = normalizePromptText(brollPromptsPlain || brollPromptsJson);
+    const blob = new Blob([normalizedText], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -356,10 +370,14 @@ export const ScriptInput = ({
               </button>
             </div>
             {(() => {
-              // Count only top-level B-roll scenes (those with scene_id)
-              // Split by double newlines and count valid JSON objects with scene_id
-              const sceneBlocks = brollPromptsJson.split('\n\n').filter(block => block.trim());
-              const sceneCount = sceneBlocks.filter((block) => /^Scene \d+:/i.test(block.trim().split('\n')[0] || '')).length;
+              // Prefer backend-reported total scenes; fall back to parsing text if needed
+              const sceneBlocks = (brollPromptsJson || brollPromptsPlain || '')
+                .replace(/\r\n/g, '\n')
+                .split(/\n{2,}/)
+                .map((block) => block.trim())
+                .filter(Boolean);
+              const parsedCount = sceneBlocks.length;
+              const sceneCount = totalScenes || parsedCount;
               
               return (
                 <div className="space-y-4">

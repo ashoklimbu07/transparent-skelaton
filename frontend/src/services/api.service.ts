@@ -32,9 +32,24 @@ export const apiService = {
 
       if (!response.ok) {
         const error = await response.json();
-        const message = error.details
-          ? `${error.error}: ${error.details}`
+
+        const details: string = typeof error.details === 'string' ? error.details : '';
+
+        // Map noisy Gemini "high demand" errors to a user-friendly message
+        if (
+          details.includes('GoogleGenerativeAI Error') &&
+          (details.includes('high demand') || details.includes('503 Service Unavailable'))
+        ) {
+          console.error('❌ Frontend: Gemini high-demand error:', details);
+          throw new Error(
+            'Our AI engine is currently under very high demand and cannot generate B-roll right now. Please wait a minute and try again — your script is safe.',
+          );
+        }
+
+        const message = details
+          ? `${error.error}: ${details}`
           : error.error || 'Failed to generate B-roll';
+
         console.error('❌ Frontend: Backend returned error:', message);
         throw new Error(message);
       }
