@@ -1,12 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiService } from '../services/api.service';
 
 export type BrollStyle = 'transparent_skeleton' | '2d_animation' | '';
 
 const STORAGE_KEYS = {
   script: 'broll_script',
-  formattedScript: 'broll_formatted_script',
-  showFormattedOutput: 'broll_show_formatted_output',
   brollPromptsJson: 'broll_prompts_json',
   brollPromptsPlain: 'broll_prompts_plain',
   showBrollOutput: 'broll_show_output',
@@ -21,13 +19,6 @@ export const useBrollGenerator = () => {
     return '';
   });
   
-  const [formattedScript, setFormattedScriptState] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(STORAGE_KEYS.formattedScript) || '';
-    }
-    return '';
-  });
-
   const [brollPromptsJson, setBrollPromptsJsonState] = useState(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem(STORAGE_KEYS.brollPromptsJson);
@@ -44,14 +35,7 @@ export const useBrollGenerator = () => {
     return '';
   });
   
-  const [isFormatting, setIsFormatting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showFormattedOutput, setShowFormattedOutputState] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem(STORAGE_KEYS.showFormattedOutput) === 'true';
-    }
-    return false;
-  });
   const [showBrollOutput, setShowBrollOutputState] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem(STORAGE_KEYS.showBrollOutput) === 'true';
@@ -61,9 +45,10 @@ export const useBrollGenerator = () => {
   const [showStyleOptions, setShowStyleOptions] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState<BrollStyle>('');
   const [error, setError] = useState<string | null>(null);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
-  const [pendingFormat, setPendingFormat] = useState(false);
+  const [showDeleteBrollDialog, setShowDeleteBrollDialog] = useState(false);
+  const [showComingSoon, setShowComingSoon] = useState(false);
+  const brollAbortRef = useRef<AbortController | null>(null);
 
   // Save to localStorage whenever script changes
   useEffect(() => {
@@ -75,17 +60,6 @@ export const useBrollGenerator = () => {
       }
     }
   }, [script]);
-
-  // Save formattedScript to localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      if (formattedScript) {
-        localStorage.setItem(STORAGE_KEYS.formattedScript, formattedScript);
-      } else {
-        localStorage.removeItem(STORAGE_KEYS.formattedScript);
-      }
-    }
-  }, [formattedScript]);
 
   // Save brollPromptsJson to localStorage
   useEffect(() => {
@@ -109,13 +83,6 @@ export const useBrollGenerator = () => {
     }
   }, [brollPromptsPlain]);
 
-  // Save showFormattedOutput to localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEYS.showFormattedOutput, showFormattedOutput.toString());
-    }
-  }, [showFormattedOutput]);
-
   // Save showBrollOutput to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -123,17 +90,16 @@ export const useBrollGenerator = () => {
     }
   }, [showBrollOutput]);
 
+  // Dismiss "Coming soon" when user switches to a supported style
+  useEffect(() => {
+    if (selectedStyle && selectedStyle !== '2d_animation') {
+      setShowComingSoon(false);
+    }
+  }, [selectedStyle]);
+
   // Wrapper functions to update state
   const setScript = (value: string) => {
     setScriptState(value);
-  };
-
-  const setFormattedScript = (value: string) => {
-    setFormattedScriptState(value);
-  };
-
-  const setShowFormattedOutput = (value: boolean) => {
-    setShowFormattedOutputState(value);
   };
 
   const setBrollPromptsJson = (value: string) => {
@@ -148,55 +114,23 @@ export const useBrollGenerator = () => {
     setShowBrollOutputState(value);
   };
 
-  const performFormat = async () => {
-    if (!script.trim()) return;
-    
-    setIsFormatting(true);
-    setError(null);
-    
-    // Clear old output before formatting new one
-    setShowFormattedOutput(false);
-    setFormattedScript('');
-    
-    try {
-      const formatted = await apiService.formatScript(script);
-      setFormattedScript(formatted);
-      setShowFormattedOutput(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to format script');
-      console.error('Format error:', err);
-    } finally {
-      setIsFormatting(false);
-    }
-  };
+  const handleGenerateClick = () => {
+    const trimmed = script.trim();
+    const length = trimmed.length;
 
-  const handleFormat = async () => {
-    if (!script.trim()) return;
-    
-    // If there's already formatted output, show confirmation dialog
-    if (showFormattedOutput && formattedScript.trim()) {
-      setShowConfirmDialog(true);
-      setPendingFormat(true);
+    if (!length) {
+      setError('Please enter a script first');
       return;
     }
-    
-    // Otherwise, format directly
-    await performFormat();
-  };
 
-  const confirmFormat = async () => {
-    setShowConfirmDialog(false);
-    setPendingFormat(false);
-    await performFormat();
-  };
+    if (length < 1000 || length > 1500) {
+      setError(
+        `Your script must be between 1000 and 1500 characters. Current length: ${length}.`,
+      );
+      return;
+    }
 
-  const cancelFormat = () => {
-    setShowConfirmDialog(false);
-    setPendingFormat(false);
-  };
-
-  const handleGenerateClick = () => {
-    if (!script.trim()) return;
+    setError(null);
     setShowStyleOptions(true);
   };
 
@@ -206,9 +140,25 @@ export const useBrollGenerator = () => {
       return;
     }
 
-    // First, ensure we have formatted script
-    if (!formattedScript.trim()) {
-      setError('Please format the script first before generating B-roll');
+    // 2D Animation / hand-drawn style is not implemented yet — show Coming Soon
+    if (selectedStyle === '2d_animation') {
+      setError(null);
+      setShowComingSoon(true);
+      return;
+    }
+
+    const trimmed = script.trim();
+    const length = trimmed.length;
+
+    if (!length) {
+      setError('Please enter a script first');
+      return;
+    }
+
+    if (length < 1000 || length > 1500) {
+      setError(
+        `Your script must be between 1000 and 1500 characters. Current length: ${length}.`,
+      );
       return;
     }
 
@@ -218,32 +168,61 @@ export const useBrollGenerator = () => {
     setBrollPromptsJson('');
     setBrollPromptsPlain('');
 
+    const controller = new AbortController();
+    brollAbortRef.current = controller;
+
     try {
-      // Parse formatted script to get scenes
-      const scenes = JSON.parse(formattedScript);
-      
-      console.log(`🎬 Generating ${selectedStyle} B-roll for ${Object.keys(scenes).length} scenes...`);
+      console.log(`🎬 Generating ${selectedStyle} B-roll from script...`);
 
-      // Call API to generate B-roll
-      const result = await apiService.generateBroll(scenes, selectedStyle);
+      const result = await apiService.generateBroll(script, selectedStyle, controller.signal);
 
-      // Store both formats
       setBrollPromptsJson(result.promptsJson);
       setBrollPromptsPlain(result.promptsPlain);
       setShowBrollOutput(true);
 
       console.log(`✅ B-roll generation complete! ${result.totalScenes} prompts generated`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate B-roll');
-      console.error('B-roll generation error:', err);
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError(null);
+        console.log('B-roll generation cancelled');
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to generate B-roll');
+        console.error('B-roll generation error:', err);
+      }
     } finally {
       setIsGenerating(false);
+      brollAbortRef.current = null;
     }
+  };
+
+  const cancelGenerateBroll = () => {
+    if (brollAbortRef.current) {
+      brollAbortRef.current.abort();
+    }
+  };
+
+  const dismissComingSoon = () => {
+    setShowComingSoon(false);
   };
 
   const onScriptChange = (value: string) => {
     setScript(value);
-    setError(null);
+
+    const trimmed = value.trim();
+    const length = trimmed.length;
+
+    if (!length) {
+      setError(null);
+      return;
+    }
+
+    if (length < 1000 || length > 1500) {
+      setError(
+        `Your script must be between 1000 and 1500 characters. Current length: ${length}.`,
+      );
+    } else {
+      setError(null);
+    }
   };
 
   // Show clear confirmation dialog
@@ -254,24 +233,20 @@ export const useBrollGenerator = () => {
   // Clear all data function (called after confirmation)
   const confirmClear = () => {
     setScript('');
-    setFormattedScript('');
     setBrollPromptsJson('');
     setBrollPromptsPlain('');
-    setShowFormattedOutput(false);
     setShowBrollOutput(false);
     setShowStyleOptions(false);
     setSelectedStyle('');
+    setShowComingSoon(false);
     setError(null);
-    setShowConfirmDialog(false);
     setShowClearDialog(false);
     
     // Clear localStorage
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEYS.script);
-      localStorage.removeItem(STORAGE_KEYS.formattedScript);
       localStorage.removeItem(STORAGE_KEYS.brollPromptsJson);
       localStorage.removeItem(STORAGE_KEYS.brollPromptsPlain);
-      localStorage.removeItem(STORAGE_KEYS.showFormattedOutput);
       localStorage.removeItem(STORAGE_KEYS.showBrollOutput);
     }
   };
@@ -281,29 +256,53 @@ export const useBrollGenerator = () => {
     setShowClearDialog(false);
   };
 
+  // Delete B-Roll: show confirmation dialog
+  const handleDeleteBrollClick = () => {
+    setShowDeleteBrollDialog(true);
+  };
+
+  // Delete B-Roll: confirm and clear B-Roll output so user can generate again
+  const confirmDeleteBroll = () => {
+    setBrollPromptsJson('');
+    setBrollPromptsPlain('');
+    setShowBrollOutput(false);
+    setShowComingSoon(false);
+    setShowDeleteBrollDialog(false);
+    setError(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEYS.brollPromptsJson);
+      localStorage.removeItem(STORAGE_KEYS.brollPromptsPlain);
+      localStorage.setItem(STORAGE_KEYS.showBrollOutput, 'false');
+    }
+  };
+
+  const cancelDeleteBroll = () => {
+    setShowDeleteBrollDialog(false);
+  };
+
   return {
     script,
     setScript: onScriptChange,
-    formattedScript,
     brollPromptsJson,
     brollPromptsPlain,
-    isFormatting,
     isGenerating,
-    showFormattedOutput,
     showBrollOutput,
     showStyleOptions,
     selectedStyle,
     setSelectedStyle,
     error,
-    handleFormat,
     handleGenerateClick,
     handleGenerateBroll,
-    showConfirmDialog,
-    confirmFormat,
-    cancelFormat,
+    cancelGenerateBroll,
     showClearDialog,
     handleClearClick,
     confirmClear,
     cancelClear,
+    showDeleteBrollDialog,
+    handleDeleteBrollClick,
+    confirmDeleteBroll,
+    cancelDeleteBroll,
+    showComingSoon,
+    dismissComingSoon,
   };
 };

@@ -1,156 +1,136 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { generateBrollPrompt, brollGeneratorConfig } from '../prompts/brollmasterprompt.js';
 
-interface BrollScene {
-  scene_id: number;
-  action: string;
-  visual_description: string;
-  shot: {
-    composition: string;
-    angle: string;
-  };
-  lighting: {
-    setup: string;
-    mood: string;
-  };
-  camera_logic: string;
-  focus: string;
-  mood: string;
-  background_color: string;
-  style: string;
-  aspect_ratio: string;
+/**
+ * Clean AI output to final format: "Scene N: Title" then prompt only. No markdown, no Negative Prompt or Suggested Settings.
+ * Drops any leading content (e.g. script analysis) before the first scene.
+ */
+function cleanBrollOutput(raw: string): string {
+  let text = raw.replace(/\*\*/g, '').trim();
+  const firstScene = text.match(/\bScene \d+:/i);
+  if (firstScene && firstScene.index != null && firstScene.index > 0) {
+    text = text.slice(firstScene.index).trim();
+  }
+  const hasOldFormat =
+    text.includes('Main Image Prompt:') ||
+    text.includes('Negative Prompt:') ||
+    text.includes('Suggested Settings:');
+  if (!hasOldFormat) return text;
+
+  const sceneBlocks = text.split(/(?=Scene \d+:)/i).filter((b) => b.trim());
+  const out: string[] = [];
+  for (const block of sceneBlocks) {
+    const firstLine = block.split('\n')[0]?.trim() || '';
+    const title = firstLine.replace(/\*\*/g, '').trim();
+    if (!title || !/^Scene \d+:/i.test(title)) continue;
+
+    const mainIdx = block.indexOf('Main Image Prompt:');
+    const negIdx = block.indexOf('Negative Prompt:');
+    const setIdx = block.indexOf('Suggested Settings:');
+    const endIdx = negIdx >= 0 ? negIdx : setIdx >= 0 ? setIdx : block.length;
+
+    let prompt: string;
+    if (mainIdx >= 0) {
+      prompt = block.slice(mainIdx + 'Main Image Prompt:'.length, endIdx).replace(/\*\*/g, '').trim();
+    } else {
+      prompt = block.slice(firstLine.length, endIdx).replace(/\*\*/g, '').trim();
+    }
+    if (prompt) out.push(`${title}\n${prompt}`);
+  }
+  return out.join('\n\n');
 }
 
-/**
- * Validate a B-roll scene has all required fields
- * @param scene - Scene object to validate
- * @param sceneKey - Scene key for error messages
- */
-const validateBrollScene = (scene: any, sceneKey: string): scene is BrollScene => {
-  const requiredFields = ['scene_id', 'action', 'visual_description', 'camera_logic', 'focus', 'mood', 'background_color', 'style', 'aspect_ratio'];
-  
-  for (const field of requiredFields) {
-    if (!scene[field]) {
-      console.warn(`⚠️  ${sceneKey} missing required field: ${field}`);
-      return false;
-    }
+/** Sleep for ms, or reject if signal is aborted (so generation can stop when client cancels). */
+function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) {
+    const err = new Error('Cancelled') as Error & { name: string };
+    err.name = 'AbortError';
+    return Promise.reject(err);
   }
-  
-  // Validate nested shot object
-  if (!scene.shot || !scene.shot.composition || !scene.shot.angle) {
-    console.warn(`⚠️  ${sceneKey} missing required shot fields (composition, angle)`);
-    return false;
-  }
-  
-  // Validate nested lighting object
-  if (!scene.lighting || !scene.lighting.setup || !scene.lighting.mood) {
-    console.warn(`⚠️  ${sceneKey} missing required lighting fields (setup, mood)`);
-    return false;
-  }
-  
-  // Validate scene_id is a number
-  if (typeof scene.scene_id !== 'number') {
-    console.warn(`⚠️  ${sceneKey} scene_id must be a number`);
-    return false;
-  }
-  
-  return true;
-};
-
-/**
- * Convert structured B-roll JSON to JSON text format (JSON objects separated by blank lines)
- * @param scenes - Object with scene_X keys and BrollScene values
- * @returns Plain text formatted string with JSON objects separated by line breaks
- */
-const formatBrollToJsonText = (scenes: Record<string, BrollScene>): string => {
-  const sceneKeys = Object.keys(scenes).sort((a, b) => {
-    const numA = parseInt(a.replace('scene_', ''));
-    const numB = parseInt(b.replace('scene_', ''));
-    return numA - numB;
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      const err = new Error('Cancelled') as Error & { name: string };
+      err.name = 'AbortError';
+      reject(err);
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
   });
-
-  const validScenes: string[] = [];
-  
-  for (const key of sceneKeys) {
-    const scene = scenes[key];
-    if (!scene) continue;
-    
-    // Validate scene
-    if (!validateBrollScene(scene, key)) {
-      console.error(`❌ Skipping ${key} due to validation errors`);
-      continue;
-    }
-    
-    // Format as JSON object
-    const sceneJson = JSON.stringify({
-      scene_id: scene.scene_id,
-      action: scene.action,
-      visual_description: scene.visual_description,
-      shot: {
-        composition: scene.shot.composition,
-        angle: scene.shot.angle
-      },
-      lighting: {
-        setup: scene.lighting.setup,
-        mood: scene.lighting.mood
-      },
-      camera_logic: scene.camera_logic,
-      focus: scene.focus,
-      mood: scene.mood,
-      background_color: scene.background_color,
-      style: scene.style,
-      aspect_ratio: scene.aspect_ratio
-    }, null, 2);
-    
-    validScenes.push(sceneJson);
-  }
-  
-  return validScenes.join('\n\n');
-};
-
-/**
- * Convert structured B-roll JSON to human-readable plain text format
- * @param scenes - Object with scene_X keys and BrollScene values
- * @returns Human-readable plain text with blank lines between prompts
- */
-const formatBrollToPlainText = (scenes: Record<string, BrollScene>): string => {
-  const sceneKeys = Object.keys(scenes).sort((a, b) => {
-    const numA = parseInt(a.replace('scene_', ''));
-    const numB = parseInt(b.replace('scene_', ''));
-    return numA - numB;
-  });
-
-  const validScenes: string[] = [];
-  
-  for (const key of sceneKeys) {
-    const scene = scenes[key];
-    if (!scene) continue;
-    
-    // Validate scene
-    if (!validateBrollScene(scene, key)) {
-      console.error(`❌ Skipping ${key} due to validation errors`);
-      continue;
-    }
-    
-    // Format as flowing paragraph
-    const paragraph = `${scene.visual_description} This ${scene.shot.composition} is captured at ${scene.shot.angle}, with ${scene.lighting.setup.toLowerCase()}, creating a ${scene.lighting.mood} atmosphere. ${scene.camera_logic} The focus is on ${scene.focus.toLowerCase()}, conveying a ${scene.mood} mood. The scene is rendered in a ${scene.style} style against a ${scene.background_color} background in ${scene.aspect_ratio} aspect ratio.`;
-    
-    validScenes.push(paragraph);
-  }
-  
-  return validScenes.join('\n\n');
-};
+}
 
 /**
  * Process script scenes in batches to generate B-roll image prompts
  */
 export const brollService = {
   /**
+   * Split a raw script into scene-like chunks (deterministic, no AI formatting step).
+   */
+  scriptToScenes: (script: string, maxScenes = 30): Record<string, string> => {
+    const normalized = script
+      .replace(/\r\n/g, '\n')
+      .replace(/\t/g, ' ')
+      .trim();
+
+    if (!normalized) return {};
+
+    // Prefer splitting by blank lines first (author-intent), then by sentence boundaries.
+    const blocks = normalized
+      .split(/\n{2,}/g)
+      .map((b) => b.replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+
+    const sentences: string[] = [];
+    for (const block of blocks) {
+      const parts = block
+        .split(/(?<=[.!?])\s+(?=[A-Z0-9"'(])/g)
+        .map((p) => p.trim())
+        .filter(Boolean);
+
+      if (parts.length > 0) {
+        sentences.push(...parts);
+      } else {
+        sentences.push(block);
+      }
+    }
+
+    const trimmed = sentences
+      .map((s) => s.replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
+      .slice(0, maxScenes);
+
+    const scenes: Record<string, string> = {};
+    trimmed.forEach((text, idx) => {
+      scenes[`scene_${idx + 1}`] = text;
+    });
+
+    return scenes;
+  },
+
+  /**
+   * Generate B-roll prompts from a raw script (splits into scenes internally).
+   */
+  generateBrollPromptsFromScript: async (
+    script: string,
+    signal?: AbortSignal
+  ): Promise<{ jsonText: string; plainText: string }> => {
+    const scenes = brollService.scriptToScenes(script);
+    if (Object.keys(scenes).length === 0) {
+      throw new Error('Script could not be split into scenes');
+    }
+    return await brollService.generateBrollPrompts(scenes, signal);
+  },
+
+  /**
    * Generate B-roll prompts for all scenes in batches
    * @param scenes - Object with scene_1, scene_2, etc.
+   * @param signal - Optional AbortSignal; when aborted (e.g. client cancelled), processing stops
    * @returns Object with both JSON text and plain text formats
    */
-  generateBrollPrompts: async (scenes: Record<string, string>): Promise<{ jsonText: string; plainText: string }> => {
+  generateBrollPrompts: async (
+    scenes: Record<string, string>,
+    signal?: AbortSignal
+  ): Promise<{ jsonText: string; plainText: string }> => {
     console.log('🎬 Starting B-roll generation...');
     console.log('🔍 Checking Gemini API Key for B-Roll:', process.env.GEMINI_API_KEY_BROLL ? 'Present ✅' : 'Missing ❌');
     
@@ -174,18 +154,23 @@ export const brollService = {
     const model = genAI.getGenerativeModel({ 
       model: brollGeneratorConfig.model,
       generationConfig: {
-        responseMimeType: 'application/json',
         maxOutputTokens: 8192,
         temperature: brollGeneratorConfig.temperature,
       }
     });
 
-    const allPrompts: Record<string, BrollScene> = {};
+    let allPromptsText = '';
     const batchSize = brollGeneratorConfig.batchSize;
     const totalBatches = Math.ceil(totalScenes / batchSize);
 
     // Process in batches
     for (let i = 0; i < totalScenes; i += batchSize) {
+      if (signal?.aborted) {
+        const err = new Error('Cancelled') as Error & { name: string };
+        err.name = 'AbortError';
+        throw err;
+      }
+
       const batchNumber = Math.floor(i / batchSize) + 1;
       const batch = sceneEntries.slice(i, i + batchSize);
       const sceneTexts = batch.map(([_, value]) => value);
@@ -201,40 +186,30 @@ export const brollService = {
 
         console.log(`✅ Batch ${batchNumber} response received`);
 
-        // Parse and validate JSON
-        try {
-          const parsed = JSON.parse(text);
-          
-          // Merge this batch's prompts into the complete result
-          Object.assign(allPrompts, parsed);
-          
-          console.log(`✅ Batch ${batchNumber} completed: ${Object.keys(parsed).length} prompts generated`);
-        } catch (parseError) {
-          console.error(`❌ Batch ${batchNumber} returned invalid JSON:`, text.substring(0, 200));
-          throw new Error(`Batch ${batchNumber} failed: Invalid JSON response`);
-        }
+        allPromptsText += text + '\n\n';
 
-        // Wait before next batch (except for the last batch)
+        console.log(`✅ Batch ${batchNumber} completed`);
+
+        // Wait before next batch (except for the last batch); abortable so cancel stops quickly
         if (i + batchSize < totalScenes) {
-          const delaySeconds = brollGeneratorConfig.batchDelayMs / 1000;
+          const delayMs = brollGeneratorConfig.batchDelayMs;
+          const delaySeconds = delayMs / 1000;
           console.log(`⏳ Waiting ${delaySeconds} seconds before next batch...`);
-          await new Promise(resolve => setTimeout(resolve, brollGeneratorConfig.batchDelayMs));
+          await delay(delayMs, signal);
         }
-      } catch (error: any) {
-        console.error(`❌ Error in batch ${batchNumber}:`, error.message);
-        throw new Error(`Failed at batch ${batchNumber}/${totalBatches}: ${error.message}`);
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'AbortError') throw error;
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(`❌ Error in batch ${batchNumber}:`, message);
+        throw new Error(`Failed at batch ${batchNumber}/${totalBatches}: ${message}`);
       }
     }
 
-    console.log(`\n🎉 B-roll generation complete! Generated ${Object.keys(allPrompts).length} prompts`);
-    
-    // Convert to both formats
-    const jsonTextOutput = formatBrollToJsonText(allPrompts);
-    const plainTextOutput = formatBrollToPlainText(allPrompts);
-    
+    console.log(`\n🎉 B-roll generation complete!`);
+    const cleaned = cleanBrollOutput(allPromptsText.trim());
     return {
-      jsonText: jsonTextOutput,
-      plainText: plainTextOutput
+      jsonText: cleaned,
+      plainText: cleaned
     };
   },
 };

@@ -1,119 +1,60 @@
+import type { ChangeEvent } from 'react';
 import type { BrollStyle } from '../hooks/useBrollGenerator';
 
 interface ScriptInputProps {
   script: string;
   setScript: (value: string) => void;
-  formattedScript: string;
   brollPromptsJson: string;
   brollPromptsPlain: string;
-  onFormat: () => void;
   onGenerateClick: () => void;
   onGenerateBroll: () => void;
-  isFormatting: boolean;
+  onCancelGenerateBroll: () => void;
   isGenerating: boolean;
-  showFormattedOutput: boolean;
   showBrollOutput: boolean;
   showStyleOptions: boolean;
   selectedStyle: BrollStyle;
   setSelectedStyle: (style: BrollStyle) => void;
   error: string | null;
-  showConfirmDialog: boolean;
-  confirmFormat: () => void;
-  cancelFormat: () => void;
   showClearDialog: boolean;
   onClear: () => void;
   confirmClear: () => void;
   cancelClear: () => void;
+  showDeleteBrollDialog: boolean;
+  onDeleteBroll: () => void;
+  confirmDeleteBroll: () => void;
+  cancelDeleteBroll: () => void;
+  showComingSoon: boolean;
+  onDismissComingSoon: () => void;
 }
 
 export const ScriptInput = ({
   script,
   setScript,
-  formattedScript,
   brollPromptsJson,
   brollPromptsPlain,
-  onFormat,
   onGenerateClick,
   onGenerateBroll,
-  isFormatting,
+  onCancelGenerateBroll,
   isGenerating,
-  showFormattedOutput,
   showBrollOutput,
   showStyleOptions,
   selectedStyle,
   setSelectedStyle,
   error,
-  showConfirmDialog,
-  confirmFormat,
-  cancelFormat,
   showClearDialog,
   onClear,
   confirmClear,
   cancelClear,
+  showDeleteBrollDialog,
+  onDeleteBroll,
+  confirmDeleteBroll,
+  cancelDeleteBroll,
+  showComingSoon,
+  onDismissComingSoon,
 }: ScriptInputProps) => {
-  // Download functions
-  const downloadJSON = () => {
-    try {
-      const parsed = JSON.parse(formattedScript);
-      const jsonString = JSON.stringify(parsed, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'formatted-script.json';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      // If not JSON, download as is
-      const blob = new Blob([formattedScript], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'formatted-script.json';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-  };
-
-  const downloadTXT = () => {
-    try {
-      const parsed = JSON.parse(formattedScript);
-      const scenes = Object.entries(parsed)
-        .sort(([a], [b]) => {
-          const numA = parseInt(a.replace('scene_', ''));
-          const numB = parseInt(b.replace('scene_', ''));
-          return numA - numB;
-        })
-        .filter(([_, value]) => value && value.trim())
-        .map(([_, value]) => value as string)
-        .join('\n\n');
-      
-      const blob = new Blob([scenes], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'formatted-script.txt';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      // If not JSON, download as is
-      const blob = new Blob([formattedScript], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'formatted-script.txt';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-  };
+  const trimmedLength = script.trim().length;
+  const isScriptLengthInvalid =
+    trimmedLength > 0 && (trimmedLength < 1000 || trimmedLength > 1500);
 
   // B-roll download functions
   const downloadBrollJSON = () => {
@@ -143,7 +84,7 @@ export const ScriptInput = ({
   };
 
   // File upload handler
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -185,12 +126,12 @@ export const ScriptInput = ({
                 accept=".txt,text/plain"
                 onChange={handleFileUpload}
                 className="hidden"
-                disabled={isFormatting}
+                disabled={isGenerating}
               />
               <label
                 htmlFor="file-upload"
                 className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-all duration-200 cursor-pointer ${
-                  isFormatting ? 'opacity-50 cursor-not-allowed' : ''
+                  isGenerating ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -199,13 +140,13 @@ export const ScriptInput = ({
                 Upload TXT
               </label>
             </div>
-            {(script || formattedScript) && (
+            {(script || showBrollOutput) && (
               <button
                 type="button"
                 onClick={onClear}
-                disabled={isFormatting || isGenerating}
+                disabled={isGenerating}
                 className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-300 bg-white text-red-700 hover:bg-red-50 transition-all duration-200 ${
-                  isFormatting || isGenerating ? 'opacity-50 cursor-not-allowed' : ''
+                  isGenerating ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 title="Clear all content"
               >
@@ -225,8 +166,18 @@ export const ScriptInput = ({
           placeholder="Once upon a time in a city made of glass... or upload a .txt file"
           value={script}
           onChange={(e) => setScript(e.target.value)}
-          disabled={isFormatting}
+          disabled={isGenerating}
         />
+        <div className="mt-1 flex justify-between text-[11px] text-slate-500">
+          <span>
+            {isScriptLengthInvalid
+              ? 'Script must be between 1000 and 1500 characters.'
+              : 'Ideal length: 1000–1500 characters.'}
+          </span>
+          <span className={isScriptLengthInvalid ? 'text-red-600 font-semibold' : ''}>
+            {trimmedLength} chars
+          </span>
+        </div>
       </div>
 
       {/* Error Message */}
@@ -236,198 +187,57 @@ export const ScriptInput = ({
         </div>
       )}
 
-      {/* Action Buttons on Same Level */}
+      {/* Primary Generate Button (single entry point) */}
       <div className="flex space-x-3">
         <button
           type="button"
-          onClick={onFormat}
-          disabled={!script.trim() || isFormatting}
-          className="flex-1 flex justify-center py-3 px-4 border border-slate-200 text-sm font-bold rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isFormatting ? (
-            <span className="flex items-center">
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-slate-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Formatting...
-            </span>
-          ) : (
-            'Format Script'
-          )}
-        </button>
-        
-        <button
-          type="button"
-          onClick={onGenerateClick}
-          disabled={!script.trim() || isFormatting}
-          className="flex-1 flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-100 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Generate B-Roll
-        </button>
-      </div>
-
-      {/* Container for both outputs side by side */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Formatted Output (left/first column) */}
-        {showFormattedOutput && (
-          <div className="animate-in fade-in slide-in-from-left-4 duration-500">
-            <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl h-full">
-              <h3 className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-3">
-                ✓ Formatted Output
-              </h3>
-              {(() => {
-                try {
-                  // Try to parse as JSON
-                  const parsed = JSON.parse(formattedScript);
-                  if (typeof parsed === 'object' && parsed !== null) {
-                    const scenes = Object.entries(parsed)
-                      .sort(([a], [b]) => {
-                        const numA = parseInt(a.replace('scene_', ''));
-                        const numB = parseInt(b.replace('scene_', ''));
-                        return numA - numB;
-                      })
-                      .filter(([_, value]) => value && value.trim());
-                    
-                    return (
-                      <div className="space-y-4">
-                        {/* Completion Message */}
-                        <div className="bg-emerald-100 border border-emerald-200 rounded-lg p-3">
-                          <p className="text-sm font-semibold text-emerald-800 mb-1">
-                            ✓ Formatting completed!
-                          </p>
-                          <p className="text-xs text-emerald-700">
-                            {scenes.length} scenes generated. Download in JSON or TXT format.
-                          </p>
-                        </div>
-
-                        {/* Download Buttons */}
-                        <div className="flex flex-col gap-2">
-                          <button
-                            type="button"
-                            onClick={downloadJSON}
-                            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-all duration-200 active:scale-[0.98] shadow-sm"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Download JSON
-                          </button>
-                          <button
-                            type="button"
-                            onClick={downloadTXT}
-                            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-white border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 text-sm font-semibold rounded-lg transition-all duration-200 active:scale-[0.98]"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            Download TXT
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  }
-                } catch (e) {
-                  // Not JSON, display as plain text with download options
-                  return (
-                    <div className="space-y-4">
-                      <div className="bg-amber-100 border border-amber-200 rounded-lg p-3">
-                        <p className="text-sm font-semibold text-amber-800 mb-1">
-                          ⚠️ Formatting completed (Plain text)
-                        </p>
-                        <p className="text-xs text-amber-700">
-                          Response is not in JSON format. You can still download it.
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col gap-2">
-                        <button
-                          type="button"
-                          onClick={downloadJSON}
-                          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-all duration-200 active:scale-[0.98] shadow-sm"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          Download JSON
-                        </button>
-                        <button
-                          type="button"
-                          onClick={downloadTXT}
-                          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-white border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 text-sm font-semibold rounded-lg transition-all duration-200 active:scale-[0.98]"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          Download TXT
-                        </button>
-                      </div>
-                    </div>
-                  );
-                }
-              })()}
-            </div>
-          </div>
-        )}
-
-        {/* Style Options (right/second column) */}
-        {showStyleOptions && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
-            <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
-              <h3 className="text-xs font-bold text-indigo-700 uppercase tracking-wider mb-3">
-                Select Style
-              </h3>
-              
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => setSelectedStyle('transparent_skeleton')}
-                  disabled={isGenerating}
-                  className={`w-full p-3 border-2 rounded-lg text-left transition-all duration-200 ${
-                    selectedStyle === 'transparent_skeleton'
-                      ? 'border-indigo-600 bg-white ring-2 ring-indigo-200 shadow-sm'
-                      : 'border-slate-200 bg-white hover:border-indigo-300'
-                  } ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <div className="font-bold text-slate-900 text-xs">Transparent Skeleton</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">X-ray style 3D visuals</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedStyle('2d_animation')}
-                  disabled={isGenerating}
-                  className={`w-full p-3 border-2 rounded-lg text-left transition-all duration-200 ${
-                    selectedStyle === '2d_animation'
-                      ? 'border-indigo-600 bg-white ring-2 ring-indigo-200 shadow-sm'
-                      : 'border-slate-200 bg-white hover:border-indigo-300'
-                  } ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  <div className="font-bold text-slate-900 text-xs">2D Animation</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Classic hand-drawn style</div>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Generate B-Roll Button (appears below both outputs when style is selected) */}
-      {showStyleOptions && selectedStyle && !showBrollOutput && (
-        <button
-          type="button"
-          onClick={onGenerateBroll}
-          disabled={isGenerating}
-          className={`w-full flex justify-center py-4 px-4 border border-transparent text-base font-bold rounded-xl text-white transition-all duration-200 animate-in fade-in slide-in-from-bottom-4 duration-500 ${
+          onClick={
             isGenerating
-              ? 'bg-slate-300 cursor-not-allowed'
-              : 'bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-200 active:scale-[0.98]'
+              ? undefined
+              : !showStyleOptions
+                ? onGenerateClick
+                : selectedStyle && !showBrollOutput && !showComingSoon
+                  ? onGenerateBroll
+                  : undefined
+          }
+          disabled={
+            isGenerating ||
+            !script.trim() ||
+            isScriptLengthInvalid ||
+            (showStyleOptions && !selectedStyle) ||
+            showComingSoon
+          }
+          className={`w-full flex justify-center items-center py-3 px-4 border border-transparent text-sm font-bold rounded-xl text-white shadow-md transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${
+            isGenerating
+              ? 'bg-slate-300 shadow-none cursor-not-allowed'
+              : !showStyleOptions
+                ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'
+                : selectedStyle && !showBrollOutput && !showComingSoon
+                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100'
+                  : 'bg-slate-300 cursor-not-allowed'
           }`}
         >
           {isGenerating ? (
             <span className="flex items-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg
+                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
               Generating B-Roll Prompts...
             </span>
@@ -435,32 +245,121 @@ export const ScriptInput = ({
             'Generate B-Roll'
           )}
         </button>
+      </div>
+
+      {/* Style Options */}
+      {showStyleOptions && (
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
+            <h3 className="text-xs font-bold text-indigo-700 uppercase tracking-wider mb-3">
+              Select Style
+            </h3>
+            
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setSelectedStyle('transparent_skeleton')}
+                disabled={isGenerating}
+                className={`w-full p-3 border-2 rounded-lg text-left transition-all duration-200 ${
+                  selectedStyle === 'transparent_skeleton'
+                    ? 'border-indigo-600 bg-white ring-2 ring-indigo-200 shadow-sm'
+                    : 'border-slate-200 bg-white hover:border-indigo-300'
+                } ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <div className="font-bold text-slate-900 text-xs">Transparent Skeleton</div>
+                <div className="text-[10px] text-slate-500 mt-0.5">X-ray style 3D visuals</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedStyle('2d_animation')}
+                disabled={isGenerating}
+                className={`w-full p-3 border-2 rounded-lg text-left transition-all duration-200 ${
+                  selectedStyle === '2d_animation'
+                    ? 'border-indigo-600 bg-white ring-2 ring-indigo-200 shadow-sm'
+                    : 'border-slate-200 bg-white hover:border-indigo-300'
+                } ${isGenerating ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-900 text-xs">2D Animation</span>
+                  <span className="text-[9px] font-semibold uppercase tracking-wide text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">Coming soon</span>
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">Classic hand-drawn style</div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Coming Soon — when 2D Animation / hand-drawn is selected and user clicked Generate B-Roll */}
+      {showComingSoon && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="p-6 bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-2xl shadow-sm">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-14 h-14 rounded-full bg-amber-100 border-2 border-amber-300 flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-amber-900 mb-1">Coming soon</h3>
+              <p className="text-sm text-amber-800/90 mb-1">
+                2D Animation &amp; classic hand-drawn style
+              </p>
+              <p className="text-xs text-amber-700/80 mb-5 max-w-xs">
+                We’re working on it. Use <strong>Transparent Skeleton</strong> for now to generate B-roll prompts.
+              </p>
+              <button
+                type="button"
+                onClick={onDismissComingSoon}
+                className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold rounded-xl transition-all duration-200 active:scale-[0.98] shadow-sm"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel button (visible only while generating) */}
+      {isGenerating && showStyleOptions && selectedStyle && !showBrollOutput && !showComingSoon && (
+        <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex w-full justify-end">
+            <button
+              type="button"
+              onClick={onCancelGenerateBroll}
+              className="px-5 py-3 border-2 border-red-500 text-red-600 hover:bg-red-50 font-bold rounded-xl transition-all duration-200 active:scale-[0.98] bg-white"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       {/* B-roll Output Section */}
       {showBrollOutput && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl">
-            <h3 className="text-xs font-bold text-purple-700 uppercase tracking-wider mb-3">
-              ✓ B-Roll Prompts Generated
-            </h3>
+          <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl relative">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-bold text-purple-700 uppercase tracking-wider">
+                ✓ B-Roll Prompts Generated
+              </h3>
+              <button
+                type="button"
+                onClick={onDeleteBroll}
+                disabled={isGenerating}
+                className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-200 hover:text-purple-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Delete B-Roll output"
+                aria-label="Delete B-Roll output"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
             {(() => {
               // Count only top-level B-roll scenes (those with scene_id)
               // Split by double newlines and count valid JSON objects with scene_id
               const sceneBlocks = brollPromptsJson.split('\n\n').filter(block => block.trim());
-              let sceneCount = 0;
-              
-              sceneBlocks.forEach(block => {
-                try {
-                  const parsed = JSON.parse(block);
-                  // Only count if it has scene_id (top-level scene object)
-                  if (parsed.scene_id !== undefined) {
-                    sceneCount++;
-                  }
-                } catch (e) {
-                  // Skip invalid JSON blocks
-                }
-              });
+              const sceneCount = sceneBlocks.filter((block) => /^Scene \d+:/i.test(block.trim().split('\n')[0] || '')).length;
               
               return (
                 <div className="space-y-4">
@@ -504,40 +403,37 @@ export const ScriptInput = ({
         </div>
       )}
 
-      {/* Format Confirmation Dialog */}
-      {showConfirmDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+      {/* Delete B-Roll Confirmation Dialog */}
+      {showDeleteBrollDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/25 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white/95 backdrop-blur rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-300">
             <div className="flex items-center gap-3 mb-4">
-              <div className="flex-shrink-0 w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
-                <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-slate-900">Format New Script?</h3>
+              <h3 className="text-lg font-bold text-slate-900">Delete B-Roll output?</h3>
             </div>
             
-            <p className="text-sm text-slate-600 mb-2">
-              You already have a formatted output. Formatting a new script will replace the current output.
-            </p>
-            <p className="text-xs text-amber-600 mb-6 font-medium">
-              ⚠️ Make sure to download the current formatted output before proceeding!
+            <p className="text-sm text-slate-600 mb-6">
+              Do you want to delete the current B-Roll prompts? You can generate a new B-Roll after deleting.
             </p>
             
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={cancelFormat}
+                onClick={cancelDeleteBroll}
                 className="flex-1 py-2.5 px-4 border-2 border-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-all duration-200 active:scale-[0.98]"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={confirmFormat}
-                className="flex-1 py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-all duration-200 active:scale-[0.98] shadow-sm"
+                onClick={confirmDeleteBroll}
+                className="flex-1 py-2.5 px-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all duration-200 active:scale-[0.98] shadow-sm"
               >
-                Yes, Format New
+                OK, Delete
               </button>
             </div>
           </div>
@@ -546,8 +442,8 @@ export const ScriptInput = ({
 
       {/* Clear Confirmation Dialog */}
       {showClearDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/25 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white/95 backdrop-blur rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-300">
             <div className="flex items-center gap-3 mb-4">
               <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
                 <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -6,27 +6,27 @@ function App() {
   const { 
     script, 
     setScript, 
-    formattedScript,
     brollPromptsJson,
     brollPromptsPlain,
-    isFormatting,
     isGenerating, 
-    showFormattedOutput,
     showBrollOutput,
     showStyleOptions,
     selectedStyle,
     setSelectedStyle,
     error,
-    handleFormat,
     handleGenerateClick,
     handleGenerateBroll,
-    showConfirmDialog,
-    confirmFormat,
-    cancelFormat,
+    cancelGenerateBroll,
     showClearDialog,
     handleClearClick,
     confirmClear,
     cancelClear,
+    showDeleteBrollDialog,
+    handleDeleteBrollClick,
+    confirmDeleteBroll,
+    cancelDeleteBroll,
+    showComingSoon,
+    dismissComingSoon,
   } = useBrollGenerator();
 
   return (
@@ -36,27 +36,27 @@ function App() {
         <ScriptInput 
           script={script} 
           setScript={setScript} 
-          formattedScript={formattedScript}
           brollPromptsJson={brollPromptsJson}
           brollPromptsPlain={brollPromptsPlain}
-          onFormat={handleFormat}
           onGenerateClick={handleGenerateClick}
           onGenerateBroll={handleGenerateBroll}
-          isFormatting={isFormatting}
+          onCancelGenerateBroll={cancelGenerateBroll}
           isGenerating={isGenerating} 
-          showFormattedOutput={showFormattedOutput}
           showBrollOutput={showBrollOutput}
           showStyleOptions={showStyleOptions}
           selectedStyle={selectedStyle}
           setSelectedStyle={setSelectedStyle}
           error={error}
-          showConfirmDialog={showConfirmDialog}
-          confirmFormat={confirmFormat}
-          cancelFormat={cancelFormat}
           showClearDialog={showClearDialog}
           onClear={handleClearClick}
           confirmClear={confirmClear}
           cancelClear={cancelClear}
+          showDeleteBrollDialog={showDeleteBrollDialog}
+          onDeleteBroll={handleDeleteBrollClick}
+          confirmDeleteBroll={confirmDeleteBroll}
+          cancelDeleteBroll={cancelDeleteBroll}
+          showComingSoon={showComingSoon}
+          onDismissComingSoon={dismissComingSoon}
         />
       </div>
     </div>

@@ -9,53 +9,23 @@ export interface BrollGenerationResponse {
 }
 
 export const apiService = {
-  formatScript: async (script: string): Promise<string> => {
-    try {
-      console.log('🚀 Frontend: Sending format request to backend...');
-      
-      const response = await fetch(`${API_BASE_URL}/format`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ script }),
-      });
-
-      console.log('📡 Frontend: Received response, status:', response.status);
-
-      if (!response.ok) {
-        const error = await response.json();
-        const message = error.details
-          ? `${error.error}: ${error.details}`
-          : error.error || 'Failed to format script';
-        console.error('❌ Frontend: Backend returned error:', message);
-        throw new Error(message);
-      }
-
-      const data = await response.json();
-      console.log('✅ Frontend: Successfully received formatted script');
-      return data.formattedScript;
-    } catch (error) {
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        console.error('❌ Frontend: Network error - Cannot reach backend at', API_BASE_URL);
-        throw new Error('Cannot connect to backend. Is it running on http://localhost:3000?');
-      }
-      throw error;
-    }
-  },
-
-  generateBroll: async (scenes: Record<string, string>, style: string): Promise<BrollGenerationResponse> => {
+  generateBroll: async (
+    script: string,
+    style: string,
+    signal?: AbortSignal
+  ): Promise<BrollGenerationResponse> => {
     try {
       console.log('🎬 Frontend: Sending B-roll generation request to backend...');
       console.log(`   Style: ${style}`);
-      console.log(`   Scenes: ${Object.keys(scenes).length}`);
-      
+      console.log(`   Script length: ${script.length}`);
+
       const response = await fetch(`${API_BASE_URL}/broll/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ scenes, style }),
+        body: JSON.stringify({ script, style }),
+        signal,
       });
 
       console.log('📡 Frontend: Received B-roll response, status:', response.status);
@@ -73,7 +43,10 @@ export const apiService = {
       console.log('✅ Frontend: Successfully received B-roll prompts');
       console.log(`   Total prompts generated: ${data.totalScenes}`);
       return data;
-    } catch (error) {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw error;
+      }
       if (error instanceof TypeError && error.message.includes('fetch')) {
         console.error('❌ Frontend: Network error - Cannot reach backend at', API_BASE_URL);
         throw new Error('Cannot connect to backend. Is it running on http://localhost:3000?');

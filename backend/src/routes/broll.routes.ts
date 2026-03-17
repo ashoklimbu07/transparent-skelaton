@@ -4,13 +4,22 @@ import { brollService } from '../services/broll.service.js';
 
 const router = Router();
 
-// POST /api/broll/generate - Generate B-roll prompts from formatted scenes
+// POST /api/broll/generate - Generate B-roll prompts from a raw script
 router.post('/generate', async (req: Request, res: Response) => {
-  try {
-    const { scenes, style } = req.body;
+  const abortController = new AbortController();
+  const { signal } = abortController;
 
-    if (!scenes || typeof scenes !== 'object') {
-      res.status(400).json({ error: 'Scenes object is required' });
+  // Stop processing only when client explicitly aborts (e.g. user clicked Cancel).
+  // Use only 'aborted'; 'close' can fire in other cases and would cancel the request incorrectly.
+  req.on('aborted', () => {
+    abortController.abort();
+  });
+
+  try {
+    const { script, style } = req.body;
+
+    if (!script || typeof script !== 'string' || script.trim().length === 0) {
+      res.status(400).json({ error: 'Script is required and must be a non-empty string' });
       return;
     }
 
@@ -26,14 +35,14 @@ router.post('/generate', async (req: Request, res: Response) => {
     }
 
     console.log(`🎬 Generating B-roll for style: ${style}`);
-    console.log(`📊 Number of scenes: ${Object.keys(scenes).length}`);
+    console.log(`📝 Script length: ${script.length}`);
 
-    const brollPrompts = await brollService.generateBrollPrompts(scenes);
-    
+    const brollPrompts = await brollService.generateBrollPromptsFromScript(script, signal);
+
     // Count scenes from the text output
     const sceneCount = (brollPrompts.plainText.match(/Scene \d+:/g) || []).length;
-    
-    res.json({ 
+
+    res.json({
       success: true,
       style,
       promptsJson: brollPrompts.jsonText,
@@ -41,6 +50,15 @@ router.post('/generate', async (req: Request, res: Response) => {
       totalScenes: sceneCount
     });
   } catch (error) {
+    if (signal.aborted || (error instanceof Error && error.name === 'AbortError')) {
+      console.log('🛑 B-roll generation cancelled by client');
+      try {
+        res.status(499).json({ error: 'Cancelled' });
+      } catch {
+        // Connection already closed
+      }
+      return;
+    }
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('B-roll generation error:', message);
     res.status(500).json({ error: 'Failed to generate B-roll prompts', details: message });
