@@ -2,71 +2,10 @@
  * Master prompt template for B-roll generation - Transparent Skeleton Style
  * This prompt instructs the AI to generate image prompts for each scene
  */
-export declare const transparentSkeletonMasterPrompt: {
-    master_prompt_name: string;
-    global_style: {
-        character_core: {
-            type: string;
-            outer_shell: string;
-            inner_structure: string;
-            material: string;
-            details: string[];
-            consistency_rules: string[];
-        };
-        background: {
-            type: string;
-            color_name: string;
-            color_code: string;
-            description: string;
-        };
-        lighting: {
-            setup: string;
-            primary: string;
-            fill: string;
-            rim: string;
-            mood: string;
-            characteristics: string;
-        };
-        shot_composition: {
-            aspect_ratio: string;
-            style: string;
-            framing_options: string[];
-            camera_angles: string[];
-            movement: string;
-        };
-        visual_rules: {
-            prohibited: string[];
-            required: string[];
-        };
-        color_palette: {
-            dominant: string[];
-            accents: string[];
-        };
-        render_quality: {
-            style: string;
-            resolution: string;
-            texture_quality: string;
-            surface_finish: string;
-            grain: string;
-            sharpness: string;
-            clarity: string;
-        };
-    };
-    b_roll_generation_rules: {
-        script_processing: string[];
-        scene_design: string[];
-        engagement_principles: string[];
-    };
-    output_constraints: {
-        format: string;
-        strict: boolean;
-        no_extra_text: boolean;
-        no_explanations: boolean;
-    };
-};
+export declare const transparentSkeletonMasterPrompt = "CINEMATIC SKELETON MASTER PROMPT SYSTEM (JSON OUTPUT VERSION)\n\nSTEP 1: Script Analysis (MANDATORY FIRST STEP)\n\nWhen the user pastes a dialogue script, internally analyze:\n\nEmotional tone\n\nCore topic\n\nImplied environment\n\nIntensity level\n\nPsychological mood\n\nNarrative energy\n\nThis analysis must guide ALL visual decisions. Do NOT output this analysis.\n\nSTEP 2: Character Lock (ABSOLUTE \u2013 DO NOT MODIFY)\n\nEvery scene MUST include the permanently locked character:\n\nUltra realistic anatomical human skeleton\n\nTransparent crystal-clear glossy glass outer body shell\n\nMedically accurate rib cage, clavicle, spine, pelvis\n\nNatural realistic hand bone structure\n\nHalf-closed relaxed eyelids\n\nSubtle confident smirk expression\n\nUnreal Engine 5 hyper realism\n\nRay traced lighting\n\n8K ultra detail\n\nCinematic depth of field\n\nStrict Rules:\n\nCharacter proportions must remain identical in all scenes.\n\nSkeleton facial bone structure must remain unchanged.\n\nDo NOT turn it into horror, monster, or cartoon style.\n\nKeep anatomy medically accurate.\n\nExpression may slightly adapt to emotion but must ALWAYS feel calm and confident.\n\nSTEP 3: Environment Adaptation\n\nChoose a smart, context-aware environment based on the script\n\nLighting must reflect emotional tone\n\nAdd cinematic atmosphere (fog, particles, reflections, volumetric light, etc.)\n\nMaintain photorealism at all times\n\nBackground must feel like real-world cinematic B-roll\n\nSTEP 4: Scene Generation System (MANDATORY RULES)\n\nGenerate EXACTLY the scenes explicitly requested in USER INPUT (no extras)\n\nNEVER ask follow-up questions\n\nNEVER mention pagination or future scenes\n\nMaintain perfect character consistency across ALL scenes\n\nSTEP 5: JSON OUTPUT FORMAT (MANDATORY)\n\nFor EACH scene, output ONE valid JSON object using EXACTLY this structure:\n\n{\n\"scene\": \"Full cinematic description including the locked skeleton character (from Step 2) with consistent anatomy and expression, integrated naturally into the environment and action of the scene.\",\n\"shot\": {\n\"type\": \"Use varied cinematic shot types (e.g., close-up, medium shot, wide shot, over-the-shoulder,top angle ,button angle,macro shot ,extreme close-up,extreme wide shot,etc.) depending on scene context\",\n\"angle\": \"Use varied camera angles (e.g., eye level, low angle, high angle, tilt, etc.) based on emotional tone\",\n\"framing\": \"Describe composition (e.g., centered, rule of thirds, off-center, foreground framing, etc.)\"\n},\n\"style\": \"photorealistic, ultra-detailed, cinematic, high-resolution, sharp focus, professional photography\",\n\"lighting\": {\n\"primary\": \"Describe realistic light sources \u05D1\u05D4\u05EA\u05D0\u05DD to environment\",\n\"mood\": \"Match emotional tone of the scene\"\n},\n\"background\": \"Environment description designed as cinematic B-roll, realistic and context-aware\",\n\"color_palette\": \"Scene-specific cinematic color grading matching mood and tone\",\n\"quality\": \"8k, ultra-realistic, razor-sharp details, intricate textures, cinematic depth of field, subtle bokeh, professional color grading\",\n\"aspect_ratio\": \"9:16\",\n\"strict_prohibitions\": [\n\"no text anywhere\",\n\"no cartoon style\",\n\"no animation\",\n\"no 3d render\",\n\"no low quality\",\n\"no logos or watermarks\"\n]\n}\n\nGLOBAL OUTPUT RULES\n\nOutput ONLY JSON objects (no explanations, no extra text)\n\nEach scene = one JSON object\nOutput multiple JSON objects separated by exactly one blank line between objects.\n\nDo NOT wrap in markdown\n\nDo NOT add labels like \"Scene 1\"\n\nMaintain strict consistency of the skeleton character across all scenes\n\nShot type, angle, and framing MUST vary intelligently per scene\n\nBackground MUST behave like cinematic B-roll and match narrative context\n\nStyle, quality, aspect_ratio, and strict_prohibitions MUST remain EXACTLY the same across all scenes";
 /**
  * Generate a prompt for B-roll image generation based on scene lines
- * @param sceneLines - Array of scene text lines (max 5 per batch)
+ * @param sceneLines - Array of scene text lines (batch of scenes)
  * @param startIndex - Starting scene number for this batch
  */
 export declare const generateBrollPrompt: (sceneLines: string[], startIndex: number) => string;

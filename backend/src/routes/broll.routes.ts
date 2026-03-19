@@ -39,8 +39,12 @@ router.post('/generate', async (req: Request, res: Response) => {
 
     const brollPrompts = await brollService.generateBrollPromptsFromScript(script, signal);
 
-    // Count scenes from the text output
-    const sceneCount = (brollPrompts.plainText.match(/Scene \d+:/g) || []).length;
+    // Count scenes from the output blocks (each scene should be one JSON object block).
+    const sceneCount = brollPrompts.plainText
+      .replace(/\r\n/g, '\n')
+      .split(/\n{2,}/)
+      .map((b) => b.trim())
+      .filter(Boolean).length;
 
     res.json({
       success: true,

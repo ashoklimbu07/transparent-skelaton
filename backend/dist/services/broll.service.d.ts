@@ -1,15 +1,17 @@
+import { scriptToScenes } from './broll/scriptToScenes.js';
+import { generateBrollPrompts } from './broll/generateBrollPrompts.js';
 /**
  * Process script scenes in batches to generate B-roll image prompts
  */
 export declare const brollService: {
+    scriptToScenes: typeof scriptToScenes;
     /**
-     * Generate B-roll prompts for all scenes in batches
-     * @param scenes - Object with scene_1, scene_2, etc.
-     * @returns Object with both JSON text and plain text formats
+     * Generate B-roll prompts from a raw script (splits into scenes internally).
      */
-    generateBrollPrompts: (scenes: Record<string, string>) => Promise<{
+    generateBrollPromptsFromScript: (script: string, signal?: AbortSignal) => Promise<{
         jsonText: string;
         plainText: string;
     }>;
+    generateBrollPrompts: typeof generateBrollPrompts;
 };
 //# sourceMappingURL=broll.service.d.ts.map

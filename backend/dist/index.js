@@ -3,8 +3,19 @@ import dotenv from 'dotenv';
 dotenv.config();
 import express from 'express';
 import cors from 'cors';
-import { formatRoutes } from './routes/format.routes.js';
 import { brollRoutes } from './routes/broll.routes.js';
+function getBrollApiKeys() {
+    const keys = [];
+    for (let i = 1; i <= 10; i++) {
+        const key = process.env[`GEMINI_API_KEY_BROLL${i}`];
+        if (key)
+            keys.push(key);
+    }
+    if (process.env.GEMINI_API_KEY_BROLL) {
+        keys.push(process.env.GEMINI_API_KEY_BROLL);
+    }
+    return Array.from(new Set(keys));
+}
 const app = express();
 const port = process.env.PORT || 3000;
 // Configure CORS to allow requests from your frontend
@@ -20,14 +31,14 @@ app.use((req, res, next) => {
     next();
 });
 // Routes
-app.use('/api/format', formatRoutes);
 app.use('/api/broll', brollRoutes);
 app.get('/api/health', (req, res) => {
+    const brollKeys = getBrollApiKeys();
     res.json({
         status: 'OK',
         port,
-        geminiKeyFormat: !!process.env.GEMINI_API_KEY_FORMAT,
-        geminiKeyBroll: !!process.env.GEMINI_API_KEY_BROLL,
+        geminiKeyBroll: brollKeys.length > 0,
+        geminiKeyBrollCount: brollKeys.length,
         timestamp: new Date().toISOString()
     });
 });
@@ -40,20 +51,15 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Internal Server Error', details: err.message });
 });
 app.listen(port, () => {
+    const brollKeys = getBrollApiKeys();
     console.log('------------------------------------------------');
     console.log(`🚀 BACKEND SERVER RUNNING`);
     console.log(`📡 URL: http://localhost:${port}`);
-    console.log(`🔑 GEMINI API KEY (Format): ${process.env.GEMINI_API_KEY_FORMAT ? '✅ CONFIGURED' : '❌ MISSING'}`);
-    console.log(`🔑 GEMINI API KEY (B-Roll): ${process.env.GEMINI_API_KEY_BROLL ? '✅ CONFIGURED' : '❌ MISSING'}`);
+    console.log(`🔑 GEMINI API KEY (B-Roll): ${brollKeys.length > 0 ? `✅ CONFIGURED (${brollKeys.length} keys)` : '❌ MISSING'}`);
     // Warning if any key is missing
-    if (!process.env.GEMINI_API_KEY_FORMAT || !process.env.GEMINI_API_KEY_BROLL) {
+    if (brollKeys.length === 0) {
         console.log('⚠️  WARNING: Some API keys are missing!');
-        if (!process.env.GEMINI_API_KEY_FORMAT) {
-            console.log('   - GEMINI_API_KEY_FORMAT not found in .env');
-        }
-        if (!process.env.GEMINI_API_KEY_BROLL) {
-            console.log('   - GEMINI_API_KEY_BROLL not found in .env');
-        }
+        console.log('   - No GEMINI_API_KEY_BROLL1..N keys found in .env');
     }
     console.log(`🏥 HEALTH CHECK: http://localhost:${port}/api/health`);
     console.log('------------------------------------------------');

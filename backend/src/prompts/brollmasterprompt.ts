@@ -73,9 +73,7 @@ Background must feel like real-world cinematic B-roll
 
 STEP 4: Scene Generation System (MANDATORY RULES)
 
-Convert the provided script portion into AT LEAST 20 cinematic scenes
-
-Only generate scenes explicitly requested in USER INPUT
+Generate EXACTLY the scenes explicitly requested in USER INPUT (no extras)
 
 NEVER ask follow-up questions
 
@@ -90,7 +88,7 @@ For EACH scene, output ONE valid JSON object using EXACTLY this structure:
 {
 "scene": "Full cinematic description including the locked skeleton character (from Step 2) with consistent anatomy and expression, integrated naturally into the environment and action of the scene.",
 "shot": {
-"type": "Use varied cinematic shot types (e.g., close-up, medium shot, wide shot, over-the-shoulder, etc.) depending on scene context",
+"type": "Use varied cinematic shot types (e.g., close-up, medium shot, wide shot, over-the-shoulder,top angle ,button angle,macro shot ,extreme close-up,extreme wide shot,etc.) depending on scene context",
 "angle": "Use varied camera angles (e.g., eye level, low angle, high angle, tilt, etc.) based on emotional tone",
 "framing": "Describe composition (e.g., centered, rule of thirds, off-center, foreground framing, etc.)"
 },
@@ -118,6 +116,7 @@ GLOBAL OUTPUT RULES
 Output ONLY JSON objects (no explanations, no extra text)
 
 Each scene = one JSON object
+Output multiple JSON objects separated by exactly one blank line between objects.
 
 Do NOT wrap in markdown
 
