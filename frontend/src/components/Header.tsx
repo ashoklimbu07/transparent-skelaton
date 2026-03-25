@@ -1,3 +1,5 @@
+import { BackendWakeButton } from './BackendWakeButton';
+
 export const Header = () => {
   return (
     <div className="text-center">
@@ -7,6 +9,7 @@ export const Header = () => {
       <p className="text-slate-500 text-lg">
         Transform your script into cinematic visuals automatically.
       </p>
+      <BackendWakeButton />
     </div>
   );
 };

@@ -1,4 +1,10 @@
-const API_BASE_URL = 'http://localhost:3000/api';
+const DEFAULT_LOCAL_API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_LOCAL_API_BASE_URL).replace(
+  /\/+$/,
+  '',
+);
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export interface BrollGenerationResponse {
   success: boolean;
@@ -8,7 +14,64 @@ export interface BrollGenerationResponse {
   totalScenes: number;
 }
 
+export interface HealthCheckResponse {
+  status: string;
+  port: string | number;
+  geminiKeyBroll: boolean;
+  geminiKeyBrollCount: number;
+  timestamp: string;
+  uptimeSeconds?: number;
+  environment?: string;
+}
+
 export const apiService = {
+  checkHealth: async (signal?: AbortSignal): Promise<HealthCheckResponse> => {
+    const response = await fetch(`${API_BASE_URL}/health`, {
+      method: 'GET',
+      headers: {
+        'Cache-Control': 'no-cache',
+      },
+      signal,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Health check failed with status ${response.status}`);
+    }
+
+    return response.json() as Promise<HealthCheckResponse>;
+  },
+
+  wakeBackend: async (
+    timeoutMs = 70_000,
+    pollIntervalMs = 3_000,
+    signal?: AbortSignal,
+  ): Promise<HealthCheckResponse> => {
+    const startedAt = Date.now();
+    let lastError = 'Backend is not awake yet';
+
+    while (Date.now() - startedAt < timeoutMs) {
+      if (signal?.aborted) {
+        throw new Error('Wake backend request was cancelled');
+      }
+
+      try {
+        const health = await apiService.checkHealth(signal);
+        if (health.status === 'OK') {
+          return health;
+        }
+        lastError = `Unexpected health status: ${health.status}`;
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : 'Unknown wake error';
+      }
+
+      await wait(pollIntervalMs);
+    }
+
+    throw new Error(
+      `Backend did not wake up in time. Last error: ${lastError}. Please try again in a few seconds.`,
+    );
+  },
+
   generateBroll: async (
     script: string,
     style: string,
@@ -64,7 +127,9 @@ export const apiService = {
       }
       if (error instanceof TypeError && error.message.includes('fetch')) {
         console.error('❌ Frontend: Network error - Cannot reach backend at', API_BASE_URL);
-        throw new Error('Cannot connect to backend. Is it running on http://localhost:3000?');
+        throw new Error(
+          'Cannot connect to backend right now. If hosted on Render, click "Wake Backend" and retry.',
+        );
       }
       throw error;
     }

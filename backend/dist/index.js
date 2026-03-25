@@ -4,6 +4,14 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import { brollRoutes } from './routes/broll.routes.js';
+function getAllowedOrigins() {
+    const fromEnv = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '')
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean);
+    const devOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+    return Array.from(new Set([...fromEnv, ...devOrigins]));
+}
 function getBrollApiKeys() {
     const keys = [];
     for (let i = 1; i <= 10; i++) {
@@ -18,16 +26,33 @@ function getBrollApiKeys() {
 }
 const app = express();
 const port = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
+const allowedOrigins = getAllowedOrigins();
+app.set('trust proxy', 1);
+app.disable('x-powered-by');
 // Configure CORS to allow requests from your frontend
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type'],
+    origin: (origin, callback) => {
+        // Allow server-to-server requests (no browser origin header)
+        if (!origin) {
+            callback(null, true);
+            return;
+        }
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+            return;
+        }
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 // Log all incoming requests for debugging
 app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    if (!isProduction) {
+        console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    }
     next();
 });
 // Routes
@@ -39,7 +64,9 @@ app.get('/api/health', (req, res) => {
         port,
         geminiKeyBroll: brollKeys.length > 0,
         geminiKeyBrollCount: brollKeys.length,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        uptimeSeconds: Math.floor(process.uptime()),
+        environment: process.env.NODE_ENV || 'development',
     });
 });
 app.get('/', (req, res) => {
