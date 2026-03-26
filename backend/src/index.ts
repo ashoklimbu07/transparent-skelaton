@@ -5,6 +5,7 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import { brollRoutes } from './routes/broll.routes.js';
+import { renderHealthStatusPage } from './components/healthStatusPage.js';
 
 function normalizeOrigin(origin: string): string {
     return origin.trim().replace(/\/+$/, '').toLowerCase();
@@ -78,7 +79,7 @@ app.use('/api/broll', brollRoutes);
 
 app.get('/api/health', (req, res) => {
     const brollKeys = getBrollApiKeys();
-    res.json({ 
+    const healthPayload = { 
         status: 'OK', 
         port,
         geminiKeyBroll: brollKeys.length > 0,
@@ -86,7 +87,24 @@ app.get('/api/health', (req, res) => {
         timestamp: new Date().toISOString(),
         uptimeSeconds: Math.floor(process.uptime()),
         environment: process.env.NODE_ENV || 'development',
-    });
+    };
+
+    const acceptsHtml = (req.headers.accept || '').toLowerCase().includes('text/html');
+    const forceJson = String(req.query.format || '').toLowerCase() === 'json';
+
+    // Keep API behavior for clients, but show a minimal UI in browser visits.
+    if (!forceJson && acceptsHtml) {
+        res.type('html').send(renderHealthStatusPage({
+            status: healthPayload.status,
+            environment: healthPayload.environment,
+            geminiKeyBrollCount: healthPayload.geminiKeyBrollCount,
+            uptimeSeconds: healthPayload.uptimeSeconds,
+            timestamp: healthPayload.timestamp,
+        }));
+        return;
+    }
+
+    res.json(healthPayload);
 });
 
 app.get('/', (req, res) => {
