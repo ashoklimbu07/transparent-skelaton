@@ -7,8 +7,6 @@ const normalizeApiBaseUrl = (rawBaseUrl?: string): string => {
 
 const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 const parseJsonResponse = async <T>(response: Response, context: string): Promise<T> => {
   const contentType = response.headers.get('content-type') || '';
 
@@ -31,64 +29,7 @@ export interface BrollGenerationResponse {
   totalScenes: number;
 }
 
-export interface HealthCheckResponse {
-  status: string;
-  port: string | number;
-  geminiKeyBroll: boolean;
-  geminiKeyBrollCount: number;
-  timestamp: string;
-  uptimeSeconds?: number;
-  environment?: string;
-}
-
 export const apiService = {
-  checkHealth: async (signal?: AbortSignal): Promise<HealthCheckResponse> => {
-    const response = await fetch(`${API_BASE_URL}/health`, {
-      method: 'GET',
-      headers: {
-        'Cache-Control': 'no-cache',
-      },
-      signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Health check failed with status ${response.status}`);
-    }
-
-    return parseJsonResponse<HealthCheckResponse>(response, 'Health check');
-  },
-
-  wakeBackend: async (
-    timeoutMs = 70_000,
-    pollIntervalMs = 3_000,
-    signal?: AbortSignal,
-  ): Promise<HealthCheckResponse> => {
-    const startedAt = Date.now();
-    let lastError = 'Backend is not awake yet';
-
-    while (Date.now() - startedAt < timeoutMs) {
-      if (signal?.aborted) {
-        throw new Error('Wake backend request was cancelled');
-      }
-
-      try {
-        const health = await apiService.checkHealth(signal);
-        if (health.status === 'OK') {
-          return health;
-        }
-        lastError = `Unexpected health status: ${health.status}`;
-      } catch (error) {
-        lastError = error instanceof Error ? error.message : 'Unknown wake error';
-      }
-
-      await wait(pollIntervalMs);
-    }
-
-    throw new Error(
-      `Backend did not wake up in time. Last error: ${lastError}. Please try again in a few seconds.`,
-    );
-  },
-
   generateBroll: async (
     script: string,
     style: string,
