@@ -22,7 +22,7 @@ export function ScriptInputEditorSection(props: {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <label htmlFor="script" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="script" className="block text-sm font-medium text-[#f0ede8]">
           Enter your script
         </label>
         <div className="flex items-center gap-2">
@@ -37,7 +37,7 @@ export function ScriptInputEditorSection(props: {
             />
             <label
               htmlFor="file-upload"
-              className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-all duration-200 cursor-pointer ${
+              className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold border border-[#333333] bg-[#161616] text-[#cccccc] hover:bg-[#1d1d1d] transition-all duration-200 cursor-pointer ${
                 isGenerating ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
@@ -57,7 +57,7 @@ export function ScriptInputEditorSection(props: {
               type="button"
               onClick={onClear}
               disabled={isGenerating}
-              className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-300 bg-white text-red-700 hover:bg-red-50 transition-all duration-200 ${
+              className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold border border-red-900/60 bg-[#1a1010] text-red-300 hover:bg-[#241313] transition-all duration-200 ${
                 isGenerating ? 'opacity-50 cursor-not-allowed' : ''
               }`}
               title="Clear all content"
@@ -80,20 +80,20 @@ export function ScriptInputEditorSection(props: {
         id="script"
         name="script"
         rows={6}
-        className="appearance-none block w-full px-4 py-3 border border-slate-200 rounded-xl placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 text-slate-900 resize-none"
+        className="appearance-none block w-full px-4 py-3 border border-[#222222] bg-[#0b0b0b] placeholder-[#555555] focus:outline-none focus:ring-2 focus:ring-[#ff3c00]/40 focus:border-[#ff3c00] transition-all duration-200 text-[#f0ede8] resize-none"
         placeholder="Once upon a time in a city made of glass... or upload a .txt file"
         value={script}
         onChange={(e) => setScript(e.target.value)}
         disabled={isGenerating}
       />
 
-      <div className="mt-1 flex justify-between text-[11px] text-slate-500">
+      <div className="mt-1 flex justify-between text-[11px] text-[#666666]">
         <span>
           {isScriptLengthInvalid
             ? 'Script must be between 1000 and 1500 characters.'
             : 'Ideal length: 1000–1500 characters.'}
         </span>
-        <span className={isScriptLengthInvalid ? 'text-red-600 font-semibold' : ''}>
+        <span className={isScriptLengthInvalid ? 'text-red-400 font-semibold' : ''}>
           {trimmedLength} chars
         </span>
       </div>

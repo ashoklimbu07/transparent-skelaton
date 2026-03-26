@@ -15,16 +15,16 @@ export function ScriptInputBrollOutput(props: {
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl relative">
+      <div className="p-4 bg-[#0d0d0d] border border-[#222222] relative">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-bold text-purple-700 uppercase tracking-wider">
+          <h3 className="text-xs font-bold text-[#ff3c00] uppercase tracking-wider">
             ✓ B-Roll Prompts Generated
           </h3>
           <button
             type="button"
             onClick={onDeleteBroll}
             disabled={isGenerating}
-            className="p-1.5 rounded-lg text-purple-600 hover:bg-purple-200 hover:text-purple-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-1.5 text-[#ff8c6a] hover:bg-[#20110d] hover:text-[#ffb8a3] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Delete B-Roll output"
             aria-label="Delete B-Roll output"
           >
@@ -41,9 +41,9 @@ export function ScriptInputBrollOutput(props: {
 
         <div className="space-y-4">
           {/* Completion Message */}
-          <div className="bg-purple-100 border-purple-200 border rounded-lg p-3">
-            <p className="text-sm font-semibold mb-1 text-purple-800">✓ B-Roll generation completed!</p>
-            <p className="text-xs text-purple-700">{sceneCount} B-Roll generated</p>
+          <div className="bg-[#181818] border-[#2a2a2a] border p-3">
+            <p className="text-sm font-semibold mb-1 text-[#f0ede8]">✓ B-Roll generation completed!</p>
+            <p className="text-xs text-[#888888]">{sceneCount} B-Roll generated</p>
           </div>
 
           {/* Download Buttons - JSON and Plain Text */}
@@ -51,7 +51,7 @@ export function ScriptInputBrollOutput(props: {
             <button
               type="button"
               onClick={() => downloadBrollJSON({ brollPromptsJson, brollPromptsPlain })}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold rounded-lg transition-all duration-200 active:scale-[0.98] shadow-md"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#ff3c00] hover:bg-[#ff5a28] border border-[#ff3c00] text-white text-sm font-bold transition-all duration-200 active:scale-[0.98]"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -67,7 +67,7 @@ export function ScriptInputBrollOutput(props: {
             <button
               type="button"
               onClick={() => downloadBrollPlainText({ brollPromptsJson, brollPromptsPlain })}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-white border-2 border-purple-600 text-purple-700 hover:bg-purple-50 text-sm font-bold rounded-lg transition-all duration-200 active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-transparent border border-[#ff3c00] text-[#ff8c6a] hover:bg-[#20110d] text-sm font-bold transition-all duration-200 active:scale-[0.98]"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path

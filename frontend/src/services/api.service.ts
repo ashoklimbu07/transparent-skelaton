@@ -6,6 +6,35 @@ const normalizeApiBaseUrl = (rawBaseUrl?: string): string => {
 };
 
 const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
+const BACKEND_HEALTH_URL = `${API_BASE_URL}/health`;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const pingBackendHealth = async (signal?: AbortSignal): Promise<boolean> => {
+  try {
+    const response = await fetch(BACKEND_HEALTH_URL, {
+      method: 'GET',
+      cache: 'no-store',
+      signal,
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+};
+
+const tryWakeBackend = async (signal?: AbortSignal): Promise<boolean> => {
+  // Render cold starts can take a short while; poll health briefly before failing.
+  const maxAttempts = 4;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const isHealthy = await pingBackendHealth(signal);
+    if (isHealthy) {
+      return true;
+    }
+    await sleep(attempt * 1200);
+  }
+  return false;
+};
 
 const parseJsonResponse = async <T>(response: Response, context: string): Promise<T> => {
   const contentType = response.headers.get('content-type') || '';
@@ -35,63 +64,81 @@ export const apiService = {
     style: string,
     signal?: AbortSignal
   ): Promise<BrollGenerationResponse> => {
-    try {
-      console.log('🎬 Frontend: Sending B-roll generation request to backend...');
-      console.log(`   Style: ${style}`);
-      console.log(`   Script length: ${script.length}`);
+    const executeGenerate = async (hasRetriedAfterWake = false): Promise<BrollGenerationResponse> => {
+      try {
+        console.log('🎬 Frontend: Sending B-roll generation request to backend...');
+        console.log(`   Style: ${style}`);
+        console.log(`   Script length: ${script.length}`);
 
-      const response = await fetch(`${API_BASE_URL}/broll/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ script, style }),
-        signal,
-      });
+        const response = await fetch(`${API_BASE_URL}/broll/generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ script, style }),
+          signal,
+        });
 
-      console.log('📡 Frontend: Received B-roll response, status:', response.status);
+        console.log('📡 Frontend: Received B-roll response, status:', response.status);
 
-      if (!response.ok) {
-        const error = await parseJsonResponse<{ error?: string; details?: string }>(
-          response,
-          'B-roll generation',
-        );
-
-        const details: string = typeof error.details === 'string' ? error.details : '';
-
-        // Map noisy Gemini "high demand" errors to a user-friendly message
-        if (
-          details.includes('GoogleGenerativeAI Error') &&
-          (details.includes('high demand') || details.includes('503 Service Unavailable'))
-        ) {
-          console.error('❌ Frontend: Gemini high-demand error:', details);
-          throw new Error(
-            'Our AI engine is currently under very high demand and cannot generate B-roll right now. Please wait a minute and try again — your script is safe.',
+        if (!response.ok) {
+          const error = await parseJsonResponse<{ error?: string; details?: string }>(
+            response,
+            'B-roll generation',
           );
+
+          const details: string = typeof error.details === 'string' ? error.details : '';
+
+          // Map noisy Gemini "high demand" errors to a user-friendly message
+          if (
+            details.includes('GoogleGenerativeAI Error') &&
+            (details.includes('high demand') || details.includes('503 Service Unavailable'))
+          ) {
+            console.error('❌ Frontend: Gemini high-demand error:', details);
+            throw new Error(
+              'Our AI engine is currently under very high demand and cannot generate B-roll right now. Please wait a minute and try again — your script is safe.',
+            );
+          }
+
+          const message = details
+            ? `${error.error}: ${details}`
+            : error.error || 'Failed to generate B-roll';
+
+          console.error('❌ Frontend: Backend returned error:', message);
+          throw new Error(message);
         }
 
-        const message = details
-          ? `${error.error}: ${details}`
-          : error.error || 'Failed to generate B-roll';
+        const data = await parseJsonResponse<BrollGenerationResponse>(response, 'B-roll generation');
+        console.log('✅ Frontend: Successfully received B-roll prompts');
+        console.log(`   Total prompts generated: ${data.totalScenes}`);
+        return data;
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw error;
+        }
 
-        console.error('❌ Frontend: Backend returned error:', message);
-        throw new Error(message);
-      }
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          console.error('❌ Frontend: Network error - Cannot reach backend at', API_BASE_URL);
 
-      const data = await parseJsonResponse<BrollGenerationResponse>(response, 'B-roll generation');
-      console.log('✅ Frontend: Successfully received B-roll prompts');
-      console.log(`   Total prompts generated: ${data.totalScenes}`);
-      return data;
-    } catch (error: unknown) {
-      if (error instanceof Error && error.name === 'AbortError') {
+          if (!hasRetriedAfterWake) {
+            const woke = await tryWakeBackend(signal);
+            if (woke) {
+              console.log('🔁 Frontend: Backend woke up, retrying B-roll generation...');
+              return executeGenerate(true);
+            }
+          }
+
+          throw new Error(
+            'Cannot connect to backend right now. If hosted on Render, click "Wake Backend" and retry.',
+          );
+        }
         throw error;
       }
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        console.error('❌ Frontend: Network error - Cannot reach backend at', API_BASE_URL);
-        throw new Error(
-          'Cannot connect to backend right now. If hosted on Render, click "Wake Backend" and retry.',
-        );
-      }
+    };
+
+    try {
+      return await executeGenerate();
+    } catch (error) {
       throw error;
     }
   },

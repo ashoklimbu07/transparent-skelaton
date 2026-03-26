@@ -33,6 +33,9 @@ export const ScriptInput = ({
   cancelDeleteBroll,
   showComingSoon,
   onDismissComingSoon,
+  hideEditorSection = false,
+  hidePrimaryGenerateButton = false,
+  hideStyleOptions = false,
 }: ScriptInputProps) => {
   const trimmedLength = script.trim().length;
   const isScriptLengthInvalid =
@@ -41,38 +44,42 @@ export const ScriptInput = ({
   return (
     <div className="mt-8 space-y-6">
       {/* Script Input */}
-      <ScriptInputEditorSection
-        script={script}
-        setScript={setScript}
-        showBrollOutput={showBrollOutput}
-        isGenerating={isGenerating}
-        onClear={onClear}
-        trimmedLength={trimmedLength}
-        isScriptLengthInvalid={isScriptLengthInvalid}
-      />
+      {!hideEditorSection && (
+        <ScriptInputEditorSection
+          script={script}
+          setScript={setScript}
+          showBrollOutput={showBrollOutput}
+          isGenerating={isGenerating}
+          onClear={onClear}
+          trimmedLength={trimmedLength}
+          isScriptLengthInvalid={isScriptLengthInvalid}
+        />
+      )}
 
       {/* Error Message */}
       {error && (
-        <div className="p-4 bg-red-50 border border-red-100 rounded-xl animate-in fade-in duration-300">
-          <p className="text-red-700 text-sm font-medium">{error}</p>
+        <div className="p-4 bg-red-950/30 border border-red-800/50 animate-in fade-in duration-300">
+          <p className="text-red-300 text-sm font-medium">{error}</p>
         </div>
       )}
 
       {/* Primary Generate Button (single entry point) */}
-      <ScriptInputGenerateButton
-        isGenerating={isGenerating}
-        showStyleOptions={showStyleOptions}
-        selectedStyle={selectedStyle}
-        showBrollOutput={showBrollOutput}
-        showComingSoon={showComingSoon}
-        script={script}
-        isScriptLengthInvalid={isScriptLengthInvalid}
-        onGenerateClick={onGenerateClick}
-        onGenerateBroll={onGenerateBroll}
-      />
+      {!hidePrimaryGenerateButton && (
+        <ScriptInputGenerateButton
+          isGenerating={isGenerating}
+          showStyleOptions={showStyleOptions}
+          selectedStyle={selectedStyle}
+          showBrollOutput={showBrollOutput}
+          showComingSoon={showComingSoon}
+          script={script}
+          isScriptLengthInvalid={isScriptLengthInvalid}
+          onGenerateClick={onGenerateClick}
+          onGenerateBroll={onGenerateBroll}
+        />
+      )}
 
       {/* Style Options */}
-      {showStyleOptions && (
+      {showStyleOptions && !hideStyleOptions && (
         <ScriptInputStyleOptions
           isGenerating={isGenerating}
           selectedStyle={selectedStyle}

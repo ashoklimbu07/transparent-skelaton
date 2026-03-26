@@ -25,5 +25,8 @@ export interface ScriptInputProps {
   cancelDeleteBroll: () => void;
   showComingSoon: boolean;
   onDismissComingSoon: () => void;
+  hideEditorSection?: boolean;
+  hidePrimaryGenerateButton?: boolean;
+  hideStyleOptions?: boolean;
 }
 
