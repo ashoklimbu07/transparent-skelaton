@@ -6,6 +6,20 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_LOCAL_API_BAS
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const parseJsonResponse = async <T>(response: Response, context: string): Promise<T> => {
+  const contentType = response.headers.get('content-type') || '';
+
+  if (!contentType.toLowerCase().includes('application/json')) {
+    const responseText = await response.text();
+    const preview = responseText.slice(0, 120).replace(/\s+/g, ' ').trim();
+    throw new Error(
+      `${context} returned non-JSON response. Check VITE_API_BASE_URL and ensure it points to backend /api. Preview: ${preview || 'empty response'}`,
+    );
+  }
+
+  return response.json() as Promise<T>;
+};
+
 export interface BrollGenerationResponse {
   success: boolean;
   style: string;
@@ -38,7 +52,7 @@ export const apiService = {
       throw new Error(`Health check failed with status ${response.status}`);
     }
 
-    return response.json() as Promise<HealthCheckResponse>;
+    return parseJsonResponse<HealthCheckResponse>(response, 'Health check');
   },
 
   wakeBackend: async (
@@ -94,7 +108,10 @@ export const apiService = {
       console.log('📡 Frontend: Received B-roll response, status:', response.status);
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await parseJsonResponse<{ error?: string; details?: string }>(
+          response,
+          'B-roll generation',
+        );
 
         const details: string = typeof error.details === 'string' ? error.details : '';
 
@@ -117,7 +134,7 @@ export const apiService = {
         throw new Error(message);
       }
 
-      const data = await response.json();
+      const data = await parseJsonResponse<BrollGenerationResponse>(response, 'B-roll generation');
       console.log('✅ Frontend: Successfully received B-roll prompts');
       console.log(`   Total prompts generated: ${data.totalScenes}`);
       return data;
