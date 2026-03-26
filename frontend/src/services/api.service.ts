@@ -1,8 +1,11 @@
 const DEFAULT_LOCAL_API_BASE_URL = 'http://localhost:3000/api';
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_LOCAL_API_BASE_URL).replace(
-  /\/+$/,
-  '',
-);
+
+const normalizeApiBaseUrl = (rawBaseUrl?: string): string => {
+  const trimmed = (rawBaseUrl || DEFAULT_LOCAL_API_BASE_URL).replace(/\/+$/, '');
+  return /\/api$/i.test(trimmed) ? trimmed : `${trimmed}/api`;
+};
+
+const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
