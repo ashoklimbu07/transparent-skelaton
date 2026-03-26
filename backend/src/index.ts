@@ -6,13 +6,17 @@ import express from 'express';
 import cors from 'cors';
 import { brollRoutes } from './routes/broll.routes.js';
 
+function normalizeOrigin(origin: string): string {
+    return origin.trim().replace(/\/+$/, '').toLowerCase();
+}
+
 function getAllowedOrigins(): string[] {
     const fromEnv = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '')
         .split(',')
-        .map((origin) => origin.trim())
+        .map((origin) => normalizeOrigin(origin))
         .filter(Boolean);
 
-    const devOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+    const devOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'].map(normalizeOrigin);
 
     return Array.from(new Set([...fromEnv, ...devOrigins]));
 }
@@ -47,7 +51,7 @@ app.use(
                 return;
             }
 
-            if (allowedOrigins.includes(origin)) {
+            if (allowedOrigins.includes(normalizeOrigin(origin))) {
                 callback(null, true);
                 return;
             }
