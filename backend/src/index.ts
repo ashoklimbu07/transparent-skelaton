@@ -96,10 +96,8 @@ app.get('/api/health', (req, res) => {
     if (!forceJson && acceptsHtml) {
         res.type('html').send(renderHealthStatusPage({
             status: healthPayload.status,
-            environment: healthPayload.environment,
+            geminiKeyBrollConfigured: healthPayload.geminiKeyBroll,
             geminiKeyBrollCount: healthPayload.geminiKeyBrollCount,
-            uptimeSeconds: healthPayload.uptimeSeconds,
-            timestamp: healthPayload.timestamp,
         }));
         return;
     }

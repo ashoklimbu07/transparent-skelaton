@@ -16,10 +16,13 @@ export function ScriptInputBrollOutput(props: {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="p-4 bg-[#0d0d0d] border border-[#222222] relative">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-bold text-[#ff3c00] uppercase tracking-wider">
-            ✓ B-Roll Prompts Generated
-          </h3>
+        <div className="mb-3 flex items-center justify-between gap-3 border-b border-[#222222] pb-2">
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#ff3c00]">
+              B-Roll Scenes Created
+            </h3>
+            <p className="mt-1 text-xs text-[#8a8a8a]">Total scenes: {sceneCount}</p>
+          </div>
           <button
             type="button"
             onClick={onDeleteBroll}
@@ -40,12 +43,6 @@ export function ScriptInputBrollOutput(props: {
         </div>
 
         <div className="space-y-4">
-          {/* Completion Message */}
-          <div className="bg-[#181818] border-[#2a2a2a] border p-3">
-            <p className="text-sm font-semibold mb-1 text-[#f0ede8]">✓ B-Roll generation completed!</p>
-            <p className="text-xs text-[#888888]">{sceneCount} B-Roll generated</p>
-          </div>
-
           {/* Download Buttons - JSON and Plain Text */}
           <div className="flex flex-col gap-2">
             <button

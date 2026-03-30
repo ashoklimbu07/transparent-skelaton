@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './landingPage.css';
 import { features, platforms, pricing, stats, steps, tickerItems } from './landingPageData';
 
 const sectionPad = 'px-5 md:px-12';
 
 export function LandingPage() {
+  const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [cursorExpanded, setCursorExpanded] = useState(false);
   const [cursorPosition, setCursorPosition] = useState({ x: 0, y: 0 });
@@ -105,6 +107,7 @@ export function LandingPage() {
           className="bg-[#ff3c00] hover:bg-[#ff5a28] text-white text-[13px] font-medium uppercase tracking-[.5px] px-4 md:px-[22px] py-2.5 transition-all duration-200 hover:-translate-y-[1px]"
           onMouseEnter={() => setCursorExpanded(true)}
           onMouseLeave={() => setCursorExpanded(false)}
+          onClick={() => navigate('/signup')}
         >
           Get Early Access
         </button>
@@ -152,6 +155,7 @@ export function LandingPage() {
               className="relative overflow-hidden bg-[#ff3c00] hover:bg-[#ff5a28] text-white text-[15px] font-medium tracking-[.5px] py-4 px-10 transition-all duration-200 hover:-translate-y-0.5 btn-shine"
               onMouseEnter={() => setCursorExpanded(true)}
               onMouseLeave={() => setCursorExpanded(false)}
+              onClick={() => navigate('/signup')}
             >
               Start for Free →
             </button>
@@ -341,6 +345,7 @@ export function LandingPage() {
                     ? 'bg-[#ff3c00] border border-[#ff3c00] text-white hover:bg-[#ff5a28]'
                     : 'bg-transparent border border-[#222222] text-[#f0ede8] hover:border-[#f0ede8]'
                 }`}
+                onClick={() => navigate('/signup')}
               >
                 {plan.buttonLabel}
               </button>
@@ -370,6 +375,7 @@ export function LandingPage() {
             className="relative overflow-hidden bg-[#ff3c00] hover:bg-[#ff5a28] text-white text-[15px] font-medium tracking-[.5px] py-4 px-10 transition-all duration-200 hover:-translate-y-0.5 btn-shine"
             onMouseEnter={() => setCursorExpanded(true)}
             onMouseLeave={() => setCursorExpanded(false)}
+            onClick={() => navigate('/signup')}
           >
             Generate Your First Clip →
           </button>
@@ -377,6 +383,7 @@ export function LandingPage() {
             className="bg-transparent border border-[#222222] hover:border-[#f0ede8] text-[#f0ede8] text-sm font-medium tracking-[.5px] py-3.5 px-8 transition-colors duration-200"
             onMouseEnter={() => setCursorExpanded(true)}
             onMouseLeave={() => setCursorExpanded(false)}
+            onClick={() => navigate('/login')}
           >
             Watch Demo
           </button>

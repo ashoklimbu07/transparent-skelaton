@@ -8,7 +8,30 @@ const normalizeApiBaseUrl = (rawBaseUrl?: string): string => {
 const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
 const BACKEND_HEALTH_URL = `${API_BASE_URL}/health`;
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number, signal?: AbortSignal) =>
+  new Promise<void>((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      cleanup();
+      resolve();
+    }, ms);
+
+    const onAbort = () => {
+      cleanup();
+      reject(new DOMException('The operation was aborted.', 'AbortError'));
+    };
+
+    const cleanup = () => {
+      window.clearTimeout(timeoutId);
+      signal?.removeEventListener('abort', onAbort);
+    };
+
+    if (signal?.aborted) {
+      onAbort();
+      return;
+    }
+
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
 
 const pingBackendHealth = async (signal?: AbortSignal): Promise<boolean> => {
   try {
@@ -27,11 +50,15 @@ const tryWakeBackend = async (signal?: AbortSignal): Promise<boolean> => {
   // Render cold starts can take a short while; poll health briefly before failing.
   const maxAttempts = 4;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    if (signal?.aborted) {
+      throw new DOMException('The operation was aborted.', 'AbortError');
+    }
+
     const isHealthy = await pingBackendHealth(signal);
     if (isHealthy) {
       return true;
     }
-    await sleep(attempt * 1200);
+    await sleep(attempt * 1200, signal);
   }
   return false;
 };
@@ -59,6 +86,10 @@ export interface BrollGenerationResponse {
 }
 
 export const apiService = {
+  wakeBackend: async (signal?: AbortSignal): Promise<boolean> => {
+    return tryWakeBackend(signal);
+  },
+
   generateBroll: async (
     script: string,
     style: string,
@@ -66,6 +97,9 @@ export const apiService = {
   ): Promise<BrollGenerationResponse> => {
     const executeGenerate = async (hasRetriedAfterWake = false): Promise<BrollGenerationResponse> => {
       try {
+        // Proactively ping health so cold backends (e.g. Render) wake before heavy work.
+        await tryWakeBackend(signal);
+
         console.log('🎬 Frontend: Sending B-roll generation request to backend...');
         console.log(`   Style: ${style}`);
         console.log(`   Script length: ${script.length}`);

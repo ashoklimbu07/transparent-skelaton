@@ -3,6 +3,7 @@ import type { BrollStyle } from './brollTypes';
 import { getScriptLengthError } from './validateScriptLength';
 
 type AbortRef = { current: AbortController | null };
+type BooleanRef = { current: boolean };
 
 export function handleGenerateClickImpl(args: {
   script: string;
@@ -33,6 +34,7 @@ export async function handleGenerateBrollImpl(args: {
   script: string;
   selectedStyle: BrollStyle;
   brollAbortRef: AbortRef;
+  cancelRequestedRef: BooleanRef;
   setIsGenerating: (value: boolean) => void;
   setError: (value: string | null) => void;
   setShowBrollOutput: (value: boolean) => void;
@@ -45,6 +47,7 @@ export async function handleGenerateBrollImpl(args: {
     script,
     selectedStyle,
     brollAbortRef,
+    cancelRequestedRef,
     setIsGenerating,
     setError,
     setShowBrollOutput,
@@ -89,10 +92,17 @@ export async function handleGenerateBrollImpl(args: {
 
   const controller = new AbortController();
   brollAbortRef.current = controller;
+  cancelRequestedRef.current = false;
 
   try {
     console.log(`🎬 Generating ${selectedStyle} B-roll from script...`);
     const result = await apiService.generateBroll(script, selectedStyle, controller.signal);
+
+    // Frontend-only cancel guard: ignore late results after user clicked cancel.
+    if (cancelRequestedRef.current || controller.signal.aborted) {
+      console.log('🛑 Frontend: ignored response after user cancelled');
+      return;
+    }
 
     setBrollPromptsJson(result.promptsJson);
     setBrollPromptsPlain(result.promptsPlain);
@@ -102,7 +112,9 @@ export async function handleGenerateBrollImpl(args: {
     console.log(`✅ B-roll generation complete! ${result.totalScenes} prompts generated`);
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') {
-      setError(null);
+      if (!cancelRequestedRef.current) {
+        setError(null);
+      }
       console.log('B-roll generation cancelled');
     } else {
       setError(err instanceof Error ? err.message : 'Failed to generate B-roll');
@@ -114,8 +126,15 @@ export async function handleGenerateBrollImpl(args: {
   }
 }
 
-export function cancelGenerateBrollImpl(args: { brollAbortRef: AbortRef }) {
-  const { brollAbortRef } = args;
+export function cancelGenerateBrollImpl(args: {
+  brollAbortRef: AbortRef;
+  cancelRequestedRef: BooleanRef;
+  setError: (value: string | null) => void;
+}) {
+  const { brollAbortRef, cancelRequestedRef, setError } = args;
+  cancelRequestedRef.current = true;
+  setError('B-roll generation cancelled.');
+  console.log('🛑 Frontend: user clicked cancel');
   brollAbortRef.current?.abort();
 }
 

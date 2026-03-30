@@ -40,6 +40,7 @@ export const ScriptInput = ({
   const trimmedLength = script.trim().length;
   const isScriptLengthInvalid =
     trimmedLength > 0 && (trimmedLength < 1000 || trimmedLength > 1500);
+  const isCancelNotice = !!error && error.toLowerCase().includes('cancel');
 
   return (
     <div className="mt-8 space-y-6">
@@ -58,8 +59,16 @@ export const ScriptInput = ({
 
       {/* Error Message */}
       {error && (
-        <div className="p-4 bg-red-950/30 border border-red-800/50 animate-in fade-in duration-300">
-          <p className="text-red-300 text-sm font-medium">{error}</p>
+        <div
+          className={`animate-in fade-in duration-300 p-3 ${
+            isCancelNotice
+              ? 'border border-[#2b2b2b] bg-[#171717]'
+              : 'border border-red-800/50 bg-red-950/30'
+          }`}
+        >
+          <p className={`text-sm font-medium ${isCancelNotice ? 'text-[#b7b7b7]' : 'text-red-300'}`}>
+            {error}
+          </p>
         </div>
       )}
 
