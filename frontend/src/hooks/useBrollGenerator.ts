@@ -60,6 +60,7 @@ export const useBrollGenerator = () => {
   const [showDeleteBrollDialog, setShowDeleteBrollDialog] = useState(false);
   const [showComingSoon, setShowComingSoon] = useState(false);
   const brollAbortRef = useRef<AbortController | null>(null);
+  const cancelRequestedRef = useRef(false);
   useBrollGeneratorEffects({
     script,
     brollPromptsJson,
@@ -78,6 +79,7 @@ export const useBrollGenerator = () => {
       script,
       selectedStyle,
       brollAbortRef,
+      cancelRequestedRef,
       setIsGenerating,
       setError,
       setShowBrollOutput: setShowBrollOutputState,
@@ -89,7 +91,7 @@ export const useBrollGenerator = () => {
   };
 
   const cancelGenerateBroll = () => {
-    cancelGenerateBrollImpl({ brollAbortRef });
+    cancelGenerateBrollImpl({ brollAbortRef, cancelRequestedRef, setError });
   };
 
   const dismissComingSoon = () => {

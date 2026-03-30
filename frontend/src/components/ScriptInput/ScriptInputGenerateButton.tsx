@@ -41,14 +41,14 @@ export function ScriptInputGenerateButton(props: {
           (showStyleOptions && !selectedStyle) ||
           showComingSoon
         }
-        className={`w-full flex justify-center items-center py-3 px-4 border border-transparent text-sm font-bold rounded-xl text-white shadow-md transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${
+        className={`w-full flex justify-center items-center py-3 px-4 border text-sm font-bold text-white transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed ${
           isGenerating
-            ? 'bg-slate-300 shadow-none cursor-not-allowed'
+            ? 'bg-[#555555] border-[#555555] shadow-none cursor-not-allowed'
             : !showStyleOptions
-              ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'
+              ? 'bg-[#ff3c00] border-[#ff3c00] hover:bg-[#ff5a28]'
               : selectedStyle && !showBrollOutput && !showComingSoon
-                ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100'
-                : 'bg-slate-300 cursor-not-allowed'
+                ? 'bg-[#ff5a28] border-[#ff5a28] hover:bg-[#ff6d42]'
+                : 'bg-[#444444] border-[#444444] cursor-not-allowed'
         }`}
       >
         {isGenerating ? (

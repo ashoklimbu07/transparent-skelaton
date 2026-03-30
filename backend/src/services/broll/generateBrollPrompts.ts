@@ -14,6 +14,14 @@ export async function generateBrollPrompts(
   scenes: Record<string, string>,
   signal?: AbortSignal,
 ): Promise<{ jsonText: string; plainText: string }> {
+  const throwIfAborted = () => {
+    if (signal?.aborted) {
+      const err = new Error('Cancelled') as Error & { name: string };
+      err.name = 'AbortError';
+      throw err;
+    }
+  };
+
   console.log('🎬 Starting B-roll generation...');
   const apiKeys = getBrollApiKeys();
   console.log(`🔍 B-Roll Gemini API keys detected: ${apiKeys.length}`);
@@ -60,6 +68,8 @@ export async function generateBrollPrompts(
   const batchResults: string[] = new Array(totalBatches).fill('');
 
   for (let waveStart = 0; waveStart < totalBatches; waveStart += models.length) {
+    throwIfAborted();
+
     const waveIndices: number[] = [];
     for (
       let i = waveStart;
@@ -81,11 +91,7 @@ export async function generateBrollPrompts(
       let lastError: unknown = null;
 
       while (attempt < models.length) {
-        if (signal?.aborted) {
-          const err = new Error('Cancelled') as Error & { name: string };
-          err.name = 'AbortError';
-          throw err;
-        }
+        throwIfAborted();
 
         const modelIndex = (modelStartIndex + attempt) % models.length;
         const model = models[modelIndex]!;
@@ -97,6 +103,8 @@ export async function generateBrollPrompts(
         try {
           const prompt = generateBrollPrompt(sceneTexts, startIndex);
           const result = await model.generateContent(prompt);
+          // If user cancelled while Gemini was in-flight, do not continue pipeline.
+          throwIfAborted();
           const response = result.response;
           const text = response.text();
 
@@ -126,6 +134,7 @@ export async function generateBrollPrompts(
     });
 
     const waveResults = await Promise.all(wavePromises);
+    throwIfAborted();
     waveIndices.forEach((batchIndex, idx) => {
       batchResults[batchIndex] = waveResults[idx] ?? '';
     });
