@@ -8,11 +8,29 @@ const router = Router();
 router.post('/generate', async (req: Request, res: Response) => {
   const abortController = new AbortController();
   const { signal } = abortController;
+  let disconnectHandled = false;
 
-  // Stop processing only when client explicitly aborts (e.g. user clicked Cancel).
-  // Use only 'aborted'; 'close' can fire in other cases and would cancel the request incorrectly.
-  req.on('aborted', () => {
+  const handleClientDisconnect = () => {
+    if (disconnectHandled || signal.aborted) {
+      return;
+    }
+    disconnectHandled = true;
+    console.log('🛑 User cancelled B-roll generation');
     abortController.abort();
+  };
+
+  // Covers cancellation during upload/body stream.
+  req.on('aborted', handleClientDisconnect);
+  // Covers cancellation while waiting for server processing/response.
+  req.on('close', () => {
+    if (!res.writableEnded) {
+      handleClientDisconnect();
+    }
+  });
+  res.on('close', () => {
+    if (!res.writableEnded) {
+      handleClientDisconnect();
+    }
   });
 
   try {
@@ -55,7 +73,7 @@ router.post('/generate', async (req: Request, res: Response) => {
     });
   } catch (error) {
     if (signal.aborted || (error instanceof Error && error.name === 'AbortError')) {
-      console.log('🛑 B-roll generation cancelled by client');
+      console.log('🛑 Request closed: user cancelled');
       try {
         res.status(499).json({ error: 'Cancelled' });
       } catch {

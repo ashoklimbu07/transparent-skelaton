@@ -7,7 +7,7 @@ export function ScriptInputCancelGenerateButton(props: { onCancelGenerateBroll: 
         <button
           type="button"
           onClick={onCancelGenerateBroll}
-          className="px-5 py-3 border-2 border-red-500 text-red-600 hover:bg-red-50 font-bold rounded-xl transition-all duration-200 active:scale-[0.98] bg-white"
+          className="px-5 py-3 border border-red-900/60 text-red-300 hover:bg-[#241313] font-bold transition-all duration-200 active:scale-[0.98] bg-[#1a1010]"
         >
           Cancel
         </button>
