@@ -11,11 +11,32 @@ import { requireAuth } from './middleware/requireAuth.js';
 function normalizeOrigin(origin) {
     return origin.trim().replace(/\/+$/, '').toLowerCase();
 }
+function withVercelWwwVariants(origin) {
+    const normalized = normalizeOrigin(origin);
+    if (!normalized) {
+        return [];
+    }
+    try {
+        const parsed = new URL(normalized);
+        if (!parsed.hostname.endsWith('.vercel.app')) {
+            return [normalized];
+        }
+        const withoutWwwHost = parsed.hostname.replace(/^www\./, '');
+        const withWwwHost = withoutWwwHost.startsWith('www.') ? withoutWwwHost : `www.${withoutWwwHost}`;
+        const withoutWww = `${parsed.protocol}//${withoutWwwHost}`;
+        const withWww = `${parsed.protocol}//${withWwwHost}`;
+        return Array.from(new Set([normalizeOrigin(withoutWww), normalizeOrigin(withWww)]));
+    }
+    catch {
+        return [normalized];
+    }
+}
 function getAllowedOrigins() {
-    const fromEnv = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '')
+    const fromEnvRaw = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '')
         .split(',')
         .map((origin) => normalizeOrigin(origin))
         .filter(Boolean);
+    const fromEnv = fromEnvRaw.flatMap((origin) => withVercelWwwVariants(origin));
     const devOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'].map(normalizeOrigin);
     return Array.from(new Set([...fromEnv, ...devOrigins]));
 }

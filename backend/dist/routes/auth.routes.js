@@ -6,7 +6,19 @@ const GOOGLE_STATE_COOKIE_NAME = 'google_oauth_state';
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const GOOGLE_STATE_MAX_AGE_MS = 10 * 60 * 1000;
 function getFrontendUrl() {
-    return (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+    const raw = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+    try {
+        const parsed = new URL(raw);
+        // Vercel default domains usually do not serve valid certs on `www`.
+        if (parsed.hostname.endsWith('.vercel.app') && parsed.hostname.startsWith('www.')) {
+            parsed.hostname = parsed.hostname.replace(/^www\./, '');
+            return parsed.toString().replace(/\/+$/, '');
+        }
+    }
+    catch {
+        return raw;
+    }
+    return raw;
 }
 function getRequestOrigin(req) {
     const forwardedProtoHeader = req.headers['x-forwarded-proto'];
