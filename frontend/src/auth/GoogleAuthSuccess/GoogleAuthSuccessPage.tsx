@@ -9,12 +9,18 @@ export function GoogleAuthSuccessPage() {
 
   useEffect(() => {
     const finalizeGoogleAuth = async () => {
-      try {
-        await refreshSession();
-        navigate('/generate', { replace: true });
-      } catch {
-        setError('Google login succeeded, but session sync failed. Please try logging in again.');
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const currentUser = await refreshSession();
+        if (currentUser) {
+          navigate('/generate', { replace: true });
+          return;
+        }
+
+        // Some browsers apply a fresh cross-site cookie a moment later.
+        await new Promise((resolve) => setTimeout(resolve, 400));
       }
+
+      setError('Google login succeeded, but session sync failed. Please try logging in again.');
     };
 
     void finalizeGoogleAuth();

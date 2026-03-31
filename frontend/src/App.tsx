@@ -20,7 +20,6 @@ function App() {
       <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
       <Route path="/signup" element={<PublicOnlyRoute><SignupPage /></PublicOnlyRoute>} />
       <Route path="/auth/google/success" element={<GoogleAuthSuccessPage />} />
-
       <Route path="/generate" element={<ProtectedRoute><GeneratePage /></ProtectedRoute>} />
       <Route path="/tools/generate" element={<ProtectedRoute><GeneratePage /></ProtectedRoute>} />
       <Route path="/tools/video-scene-analyzer" element={<ProtectedRoute><VideoSceneAnalyzerPage /></ProtectedRoute>} />

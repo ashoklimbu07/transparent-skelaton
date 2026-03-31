@@ -41,12 +41,23 @@ function getGoogleCredentials() {
 function getGoogleRedirectUri(req) {
     return process.env.GOOGLE_REDIRECT_URI || `${getBackendPublicUrl(req)}/api/auth/google/callback`;
 }
-function getCookieOptions() {
+function getCookieOptions(req) {
+    const backendPublicUrl = getBackendPublicUrl(req);
+    const frontendUrl = getFrontendUrl();
     const isProduction = process.env.NODE_ENV === 'production';
-    const sameSitePolicy = isProduction ? 'none' : 'lax';
+    const useSecureCookie = isProduction || backendPublicUrl.startsWith('https://');
+    let isCrossSite = false;
+    try {
+        isCrossSite = new URL(frontendUrl).origin !== new URL(backendPublicUrl).origin;
+    }
+    catch {
+        isCrossSite = isProduction;
+    }
+    // Cross-site frontend/backend calls require SameSite=None + Secure.
+    const sameSitePolicy = isCrossSite && useSecureCookie ? 'none' : 'lax';
     return {
         httpOnly: true,
-        secure: isProduction,
+        secure: useSecureCookie,
         sameSite: sameSitePolicy,
         path: '/',
     };
@@ -57,7 +68,7 @@ router.get('/google/start', (req, res) => {
         const redirectUri = getGoogleRedirectUri(req);
         const state = crypto.randomBytes(24).toString('hex');
         res.cookie(GOOGLE_STATE_COOKIE_NAME, state, {
-            ...getCookieOptions(),
+            ...getCookieOptions(req),
             maxAge: GOOGLE_STATE_MAX_AGE_MS,
         });
         const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
@@ -83,7 +94,7 @@ router.get('/google/callback', async (req, res) => {
     const stateFromGoogle = typeof req.query.state === 'string' ? req.query.state : '';
     const authCode = typeof req.query.code === 'string' ? req.query.code : '';
     if (!authCode || !oauthStateFromCookie || oauthStateFromCookie !== stateFromGoogle) {
-        res.clearCookie(GOOGLE_STATE_COOKIE_NAME, getCookieOptions());
+        res.clearCookie(GOOGLE_STATE_COOKIE_NAME, getCookieOptions(req));
         res.redirect(`${frontendUrl}/login?error=google_state_mismatch`);
         return;
     }
@@ -128,14 +139,14 @@ router.get('/google/callback', async (req, res) => {
         };
         const sessionToken = signSession(sessionUser);
         res.cookie(SESSION_COOKIE_NAME, sessionToken, {
-            ...getCookieOptions(),
+            ...getCookieOptions(req),
             maxAge: SESSION_MAX_AGE_MS,
         });
-        res.clearCookie(GOOGLE_STATE_COOKIE_NAME, getCookieOptions());
+        res.clearCookie(GOOGLE_STATE_COOKIE_NAME, getCookieOptions(req));
         res.redirect(`${frontendUrl}/auth/google/success`);
     }
     catch (error) {
-        res.clearCookie(GOOGLE_STATE_COOKIE_NAME, getCookieOptions());
+        res.clearCookie(GOOGLE_STATE_COOKIE_NAME, getCookieOptions(req));
         res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
     }
 });
@@ -148,7 +159,7 @@ router.get('/me', (req, res) => {
     res.json({ authenticated: true, user });
 });
 router.post('/logout', (req, res) => {
-    res.clearCookie(SESSION_COOKIE_NAME, getCookieOptions());
+    res.clearCookie(SESSION_COOKIE_NAME, getCookieOptions(req));
     res.status(204).send();
 });
 export { router as authRoutes };

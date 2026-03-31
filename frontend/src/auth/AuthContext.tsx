@@ -5,7 +5,7 @@ type AuthContextValue = {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  refreshSession: () => Promise<void>;
+  refreshSession: () => Promise<AuthUser | null>;
   logout: () => Promise<void>;
 };
 
@@ -19,8 +19,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const currentUser = await getCurrentSessionUser();
       setUser(currentUser);
+      return currentUser;
     } catch {
       setUser(null);
+      return null;
     } finally {
       setIsLoading(false);
     }
