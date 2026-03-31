@@ -10,6 +10,13 @@ import { getBrollApiKeys } from './getBrollApiKeys.js';
  * @returns Object with both JSON text and plain text formats
  */
 export async function generateBrollPrompts(scenes, signal) {
+    const throwIfAborted = () => {
+        if (signal?.aborted) {
+            const err = new Error('Cancelled');
+            err.name = 'AbortError';
+            throw err;
+        }
+    };
     console.log('🎬 Starting B-roll generation...');
     const apiKeys = getBrollApiKeys();
     console.log(`🔍 B-Roll Gemini API keys detected: ${apiKeys.length}`);
@@ -45,6 +52,7 @@ export async function generateBrollPrompts(scenes, signal) {
     // (one per API key). This prevents flooding the API and keeps output stable.
     const batchResults = new Array(totalBatches).fill('');
     for (let waveStart = 0; waveStart < totalBatches; waveStart += models.length) {
+        throwIfAborted();
         const waveIndices = [];
         for (let i = waveStart; i < Math.min(waveStart + models.length, totalBatches); i++) {
             waveIndices.push(i);
@@ -59,17 +67,15 @@ export async function generateBrollPrompts(scenes, signal) {
             let attempt = 0;
             let lastError = null;
             while (attempt < models.length) {
-                if (signal?.aborted) {
-                    const err = new Error('Cancelled');
-                    err.name = 'AbortError';
-                    throw err;
-                }
+                throwIfAborted();
                 const modelIndex = (modelStartIndex + attempt) % models.length;
                 const model = models[modelIndex];
                 console.log(`\n🔄 Processing batch ${batchNumber}/${totalBatches} (scenes ${startIndex + 1}-${startIndex + batch.length}) with API key #${modelIndex + 1}, attempt ${attempt + 1}/${models.length}...`);
                 try {
                     const prompt = generateBrollPrompt(sceneTexts, startIndex);
                     const result = await model.generateContent(prompt);
+                    // If user cancelled while Gemini was in-flight, do not continue pipeline.
+                    throwIfAborted();
                     const response = result.response;
                     const text = response.text();
                     console.log(`✅ Batch ${batchNumber} completed successfully on API key #${modelIndex + 1}`);
@@ -92,6 +98,7 @@ export async function generateBrollPrompts(scenes, signal) {
             throw new Error(`All API keys failed for batch ${batchNumber}/${totalBatches}: ${lastMessage}`);
         });
         const waveResults = await Promise.all(wavePromises);
+        throwIfAborted();
         waveIndices.forEach((batchIndex, idx) => {
             batchResults[batchIndex] = waveResults[idx] ?? '';
         });

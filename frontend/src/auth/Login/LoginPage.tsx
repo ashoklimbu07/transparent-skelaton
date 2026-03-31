@@ -1,6 +1,10 @@
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { getGoogleStartUrl } from '../authApi';
 
 export function LoginPage() {
+  const [searchParams] = useSearchParams();
+  const googleError = searchParams.get('error');
+
   return (
     <main className="min-h-screen bg-[#080808] text-[#f0ede8] font-['DM_Sans'] flex items-center justify-center px-5 py-10">
       <link
@@ -13,8 +17,30 @@ export function LoginPage() {
           Broll<span className="text-[#ff3c00]">AI</span>
         </Link>
 
-        <p className="text-[11px] tracking-[3px] uppercase text-[#ff3c00]">Welcome Back</p>
+        <div className="mb-1 flex items-start justify-between gap-3">
+          <p className="text-[11px] tracking-[3px] uppercase text-[#ff3c00]">Welcome Back</p>
+          <Link to="/signup" className="text-[11px] uppercase tracking-[1.5px] text-[#888888] hover:text-[#f0ede8]">
+            Need an account?
+          </Link>
+        </div>
         <h1 className="font-['Bebas_Neue'] text-[42px] leading-none tracking-[1px] mt-1 mb-6">Log In</h1>
+
+        {googleError ? (
+          <p className="mb-4 text-xs text-[#ff5a28]">Google auth failed. Please try again.</p>
+        ) : null}
+
+        <a
+          href={getGoogleStartUrl()}
+          className="mb-4 inline-flex h-11 w-full items-center justify-center border border-[#dcdcdc] bg-white text-sm font-medium uppercase tracking-[.5px] text-black transition-colors hover:bg-[#ededed]"
+        >
+          Continue with Google
+        </a>
+
+        <div className="mb-4 flex items-center gap-3 text-xs uppercase tracking-[2px] text-[#666666]">
+          <span className="h-px flex-1 bg-[#2a2a2a]" />
+          <span>Email</span>
+          <span className="h-px flex-1 bg-[#2a2a2a]" />
+        </div>
 
         <form className="space-y-4" onSubmit={(event) => event.preventDefault()}>
           <div>

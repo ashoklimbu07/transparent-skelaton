@@ -110,6 +110,7 @@ export const apiService = {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ script, style }),
+          credentials: 'include',
           signal,
         });
 

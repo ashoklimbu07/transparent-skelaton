@@ -4,8 +4,11 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { brollRoutes } from './routes/broll.routes.js';
 import { renderHealthStatusPage } from './components/healthStatusPage.js';
+import { authRoutes } from './routes/auth.routes.js';
+import { requireAuth } from './middleware/requireAuth.js';
 
 function normalizeOrigin(origin: string): string {
     return origin.trim().replace(/\/+$/, '').toLowerCase();
@@ -61,10 +64,12 @@ app.use(
         },
         methods: ['GET', 'POST', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization'],
+        credentials: true,
     }),
 );
 
 app.use(express.json({ limit: '1mb' }));
+app.use(cookieParser());
 
 // Log all incoming requests for debugging
 app.use((req, res, next) => {
@@ -75,7 +80,8 @@ app.use((req, res, next) => {
 });
 
 // Routes
-app.use('/api/broll', brollRoutes);
+app.use('/api/broll', requireAuth, brollRoutes);
+app.use('/api/auth', authRoutes);
 
 app.get('/api/health', (req, res) => {
     const brollKeys = getBrollApiKeys();

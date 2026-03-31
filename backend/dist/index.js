@@ -3,13 +3,20 @@ import dotenv from 'dotenv';
 dotenv.config();
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { brollRoutes } from './routes/broll.routes.js';
+import { renderHealthStatusPage } from './components/healthStatusPage.js';
+import { authRoutes } from './routes/auth.routes.js';
+import { requireAuth } from './middleware/requireAuth.js';
+function normalizeOrigin(origin) {
+    return origin.trim().replace(/\/+$/, '').toLowerCase();
+}
 function getAllowedOrigins() {
     const fromEnv = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '')
         .split(',')
-        .map((origin) => origin.trim())
+        .map((origin) => normalizeOrigin(origin))
         .filter(Boolean);
-    const devOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+    const devOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'].map(normalizeOrigin);
     return Array.from(new Set([...fromEnv, ...devOrigins]));
 }
 function getBrollApiKeys() {
@@ -38,7 +45,7 @@ app.use(cors({
             callback(null, true);
             return;
         }
-        if (allowedOrigins.includes(origin)) {
+        if (allowedOrigins.includes(normalizeOrigin(origin))) {
             callback(null, true);
             return;
         }
@@ -46,8 +53,10 @@ app.use(cors({
     },
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
 }));
 app.use(express.json({ limit: '1mb' }));
+app.use(cookieParser());
 // Log all incoming requests for debugging
 app.use((req, res, next) => {
     if (!isProduction) {
@@ -56,10 +65,11 @@ app.use((req, res, next) => {
     next();
 });
 // Routes
-app.use('/api/broll', brollRoutes);
+app.use('/api/broll', requireAuth, brollRoutes);
+app.use('/api/auth', authRoutes);
 app.get('/api/health', (req, res) => {
     const brollKeys = getBrollApiKeys();
-    res.json({
+    const healthPayload = {
         status: 'OK',
         port,
         geminiKeyBroll: brollKeys.length > 0,
@@ -67,7 +77,19 @@ app.get('/api/health', (req, res) => {
         timestamp: new Date().toISOString(),
         uptimeSeconds: Math.floor(process.uptime()),
         environment: process.env.NODE_ENV || 'development',
-    });
+    };
+    const acceptsHtml = (req.headers.accept || '').toLowerCase().includes('text/html');
+    const forceJson = String(req.query.format || '').toLowerCase() === 'json';
+    // Keep API behavior for clients, but show a minimal UI in browser visits.
+    if (!forceJson && acceptsHtml) {
+        res.type('html').send(renderHealthStatusPage({
+            status: healthPayload.status,
+            geminiKeyBrollConfigured: healthPayload.geminiKeyBroll,
+            geminiKeyBrollCount: healthPayload.geminiKeyBrollCount,
+        }));
+        return;
+    }
+    res.json(healthPayload);
 });
 app.get('/', (req, res) => {
     res.send('Backend API is running...');

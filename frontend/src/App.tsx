@@ -5,6 +5,8 @@ import { AccountSettingsPage } from './account/Settings/SettingsPage';
 import { ThemePage } from './account/Theme/ThemePage';
 import { LoginPage } from './auth/Login/LoginPage';
 import { SignupPage } from './auth/Signup/SignupPage';
+import { GoogleAuthSuccessPage } from './auth/GoogleAuthSuccess/GoogleAuthSuccessPage';
+import { ProtectedRoute, PublicOnlyRoute } from './auth/AuthRouteGuards';
 import { HistoryPage } from './extra/History/HistoryPage';
 import { MediaLibraryPage } from './extra/MediaLibrary/MediaLibraryPage';
 import { PromptCleanerPage } from './tools/PromptCleaner/PromptCleanerPage';
@@ -14,18 +16,20 @@ import { VideoSceneAnalyzerPage } from './tools/VideoSceneAnalyzer/VideoSceneAna
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/generate" element={<GeneratePage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
-      <Route path="/tools/generate" element={<GeneratePage />} />
-      <Route path="/tools/video-scene-analyzer" element={<VideoSceneAnalyzerPage />} />
-      <Route path="/tools/script-writer" element={<ScriptWriterPage />} />
-      <Route path="/tools/prompt-cleaner" element={<PromptCleanerPage />} />
-      <Route path="/extra/history" element={<HistoryPage />} />
-      <Route path="/extra/media-library" element={<MediaLibraryPage />} />
-      <Route path="/account/theme" element={<ThemePage />} />
-      <Route path="/account/settings" element={<AccountSettingsPage />} />
+      <Route path="/" element={<PublicOnlyRoute><LandingPage /></PublicOnlyRoute>} />
+      <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
+      <Route path="/signup" element={<PublicOnlyRoute><SignupPage /></PublicOnlyRoute>} />
+      <Route path="/auth/google/success" element={<GoogleAuthSuccessPage />} />
+
+      <Route path="/generate" element={<ProtectedRoute><GeneratePage /></ProtectedRoute>} />
+      <Route path="/tools/generate" element={<ProtectedRoute><GeneratePage /></ProtectedRoute>} />
+      <Route path="/tools/video-scene-analyzer" element={<ProtectedRoute><VideoSceneAnalyzerPage /></ProtectedRoute>} />
+      <Route path="/tools/script-writer" element={<ProtectedRoute><ScriptWriterPage /></ProtectedRoute>} />
+      <Route path="/tools/prompt-cleaner" element={<ProtectedRoute><PromptCleanerPage /></ProtectedRoute>} />
+      <Route path="/extra/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+      <Route path="/extra/media-library" element={<ProtectedRoute><MediaLibraryPage /></ProtectedRoute>} />
+      <Route path="/account/theme" element={<ProtectedRoute><ThemePage /></ProtectedRoute>} />
+      <Route path="/account/settings" element={<ProtectedRoute><AccountSettingsPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

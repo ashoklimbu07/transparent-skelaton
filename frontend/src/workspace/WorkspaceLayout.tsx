@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { accountNavItems, extraNavItems, toolsNavItems, type WorkspaceNavItem } from './navigation';
+import { useAuth } from '../auth/AuthContext';
 
 type WorkspaceLayoutProps = {
   children: ReactNode;
@@ -45,7 +46,10 @@ function NavSection({
 export function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const currentPath = location.pathname === '/generate' ? '/tools/generate' : location.pathname;
+  const displayName = user?.name || 'User Profile';
+  const userInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
 
   return (
     <div className="min-h-screen bg-[#0b0b0b] text-[#f0ede8] font-['DM_Sans']">
@@ -83,11 +87,20 @@ export function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
             <p className="font-['Bebas_Neue'] text-[18px] tracking-[2px] text-[#888888]">
               Creator <span className="text-[#f0ede8]">Workspace</span>
             </p>
-            <div className="inline-flex items-center gap-2.5 rounded-full border border-[#2a2a2a] bg-[#151515] px-2 py-1.5 text-xs text-[#b1b1b1]">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#2a2a2a] bg-[#151515] px-2 py-1.5 text-xs text-[#b1b1b1]">
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#242424] text-[11px] font-semibold text-[#f0ede8]">
-                U
+                {userInitial}
               </span>
-              <span className="pr-1">User Profile</span>
+              <span className="max-w-[120px] truncate pr-1">{displayName}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  void logout().then(() => navigate('/login', { replace: true }));
+                }}
+                className="rounded border border-[#323232] px-2 py-1 text-[10px] uppercase tracking-[1px] text-[#cfcfcf] hover:border-[#ff5a2f] hover:text-white"
+              >
+                Logout
+              </button>
             </div>
           </header>
 
