@@ -8,9 +8,27 @@ const GOOGLE_STATE_MAX_AGE_MS = 10 * 60 * 1000;
 function getFrontendUrl() {
     return (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
 }
-function getBackendPublicUrl() {
-    return (process.env.BACKEND_PUBLIC_URL || process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3000}`)
-        .replace(/\/+$/, '');
+function getRequestOrigin(req) {
+    const forwardedProtoHeader = req.headers['x-forwarded-proto'];
+    const forwardedProto = Array.isArray(forwardedProtoHeader)
+        ? forwardedProtoHeader[0]
+        : (forwardedProtoHeader || '').split(',')[0];
+    const protocol = (forwardedProto || req.protocol || 'http').trim();
+    const forwardedHostHeader = req.headers['x-forwarded-host'];
+    const forwardedHost = Array.isArray(forwardedHostHeader)
+        ? forwardedHostHeader[0]
+        : (forwardedHostHeader || '').split(',')[0];
+    const host = (forwardedHost || req.get('host') || '').trim();
+    if (!host) {
+        return '';
+    }
+    return `${protocol}://${host}`.replace(/\/+$/, '');
+}
+function getBackendPublicUrl(req) {
+    return (process.env.BACKEND_PUBLIC_URL
+        || process.env.BACKEND_URL
+        || getRequestOrigin(req)
+        || `http://localhost:${process.env.PORT || 3000}`).replace(/\/+$/, '');
 }
 function getGoogleCredentials() {
     const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -20,8 +38,8 @@ function getGoogleCredentials() {
     }
     return { clientId, clientSecret };
 }
-function getGoogleRedirectUri() {
-    return process.env.GOOGLE_REDIRECT_URI || `${getBackendPublicUrl()}/api/auth/google/callback`;
+function getGoogleRedirectUri(req) {
+    return process.env.GOOGLE_REDIRECT_URI || `${getBackendPublicUrl(req)}/api/auth/google/callback`;
 }
 function getCookieOptions() {
     const isProduction = process.env.NODE_ENV === 'production';
@@ -35,7 +53,7 @@ function getCookieOptions() {
 router.get('/google/start', (req, res) => {
     try {
         const { clientId } = getGoogleCredentials();
-        const redirectUri = getGoogleRedirectUri();
+        const redirectUri = getGoogleRedirectUri(req);
         const state = crypto.randomBytes(24).toString('hex');
         res.cookie(GOOGLE_STATE_COOKIE_NAME, state, {
             ...getCookieOptions(),
@@ -70,7 +88,7 @@ router.get('/google/callback', async (req, res) => {
     }
     try {
         const { clientId, clientSecret } = getGoogleCredentials();
-        const redirectUri = getGoogleRedirectUri();
+        const redirectUri = getGoogleRedirectUri(req);
         const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
