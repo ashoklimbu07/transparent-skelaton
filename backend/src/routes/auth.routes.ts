@@ -58,10 +58,11 @@ function getGoogleRedirectUri(req: Request): string {
 
 function getCookieOptions() {
     const isProduction = process.env.NODE_ENV === 'production';
+    const sameSitePolicy = isProduction ? 'none' : 'lax';
     return {
         httpOnly: true,
         secure: isProduction,
-        sameSite: 'lax' as const,
+        sameSite: sameSitePolicy as 'lax' | 'none',
         path: '/',
     };
 }
