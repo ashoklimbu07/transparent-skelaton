@@ -14,16 +14,23 @@ export function signSession(user) {
     return jwt.sign({ user }, getSessionSecret(), { expiresIn: '7d' });
 }
 export function readSessionUser(req) {
-    const token = req.cookies?.[SESSION_COOKIE_NAME];
-    if (!token || typeof token !== 'string') {
-        return null;
+    const cookieToken = req.cookies?.[SESSION_COOKIE_NAME];
+    const authHeader = req.headers.authorization;
+    const bearerToken = typeof authHeader === 'string' && authHeader.startsWith('Bearer ')
+        ? authHeader.slice(7).trim()
+        : '';
+    const candidateTokens = [cookieToken, bearerToken].filter((token) => Boolean(token && typeof token === 'string'));
+    for (const token of candidateTokens) {
+        try {
+            const decoded = jwt.verify(token, getSessionSecret());
+            if (decoded.user) {
+                return decoded.user;
+            }
+        }
+        catch {
+            // Try the next credential source.
+        }
     }
-    try {
-        const decoded = jwt.verify(token, getSessionSecret());
-        return decoded.user || null;
-    }
-    catch {
-        return null;
-    }
+    return null;
 }
 //# sourceMappingURL=session.js.map

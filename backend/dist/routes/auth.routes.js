@@ -155,7 +155,8 @@ router.get('/google/callback', async (req, res) => {
             maxAge: SESSION_MAX_AGE_MS,
         });
         res.clearCookie(GOOGLE_STATE_COOKIE_NAME, getCookieOptions(req));
-        res.redirect(`${frontendUrl}/auth/google/success`);
+        // Keep cookie auth for compatible browsers and also pass a bearer token for strict third-party-cookie browsers.
+        res.redirect(`${frontendUrl}/auth/google/success#token=${encodeURIComponent(sessionToken)}`);
     }
     catch (error) {
         res.clearCookie(GOOGLE_STATE_COOKIE_NAME, getCookieOptions(req));

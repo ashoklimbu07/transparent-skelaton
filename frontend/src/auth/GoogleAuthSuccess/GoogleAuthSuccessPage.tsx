@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
+import { writeAuthToken } from '../authToken';
 
 export function GoogleAuthSuccessPage() {
   const navigate = useNavigate();
@@ -9,6 +10,13 @@ export function GoogleAuthSuccessPage() {
 
   useEffect(() => {
     const finalizeGoogleAuth = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const tokenFromHash = hashParams.get('token') || '';
+      if (tokenFromHash) {
+        writeAuthToken(tokenFromHash);
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+
       for (let attempt = 0; attempt < 3; attempt += 1) {
         const currentUser = await refreshSession();
         if (currentUser) {

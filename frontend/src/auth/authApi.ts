@@ -1,3 +1,5 @@
+import { clearAuthToken, getAuthHeaders } from './authToken';
+
 export type AuthUser = {
   id: string;
   email: string;
@@ -21,6 +23,9 @@ export function getGoogleStartUrl(): string {
 export async function getCurrentSessionUser(): Promise<AuthUser | null> {
   const response = await fetch(`${API_BASE_URL}/auth/me`, {
     method: 'GET',
+    headers: {
+      ...getAuthHeaders(),
+    },
     credentials: 'include',
   });
 
@@ -39,8 +44,13 @@ export async function getCurrentSessionUser(): Promise<AuthUser | null> {
 export async function logoutSession(): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/auth/logout`, {
     method: 'POST',
+    headers: {
+      ...getAuthHeaders(),
+    },
     credentials: 'include',
   });
+
+  clearAuthToken();
 
   if (!response.ok && response.status !== 204) {
     throw new Error('Failed to log out.');

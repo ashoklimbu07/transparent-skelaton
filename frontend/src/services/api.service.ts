@@ -1,3 +1,5 @@
+import { getAuthHeaders } from '../auth/authToken';
+
 const DEFAULT_LOCAL_API_BASE_URL = 'http://localhost:3000/api';
 
 const normalizeApiBaseUrl = (rawBaseUrl?: string): string => {
@@ -108,6 +110,7 @@ export const apiService = {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            ...getAuthHeaders(),
           },
           body: JSON.stringify({ script, style }),
           credentials: 'include',

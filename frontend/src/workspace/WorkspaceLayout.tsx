@@ -85,11 +85,13 @@ export function WorkspaceLayout({ children, headerActions }: WorkspaceLayoutProp
 
         <main className="flex min-w-0 flex-1 flex-col">
           <header className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#252525] px-4 py-2 sm:px-6 lg:px-8">
-            <p className="font-['Bebas_Neue'] text-[18px] tracking-[2px] text-[#888888]">
-              Creator <span className="text-[#f0ede8]">Workspace</span>
-            </p>
-            <div className="ml-auto inline-flex items-center gap-2">
+            <div className="inline-flex items-center gap-3">
+              <p className="font-['Bebas_Neue'] text-[18px] tracking-[2px] text-[#888888]">
+                Creator <span className="text-[#f0ede8]">Workspace</span>
+              </p>
               {headerActions}
+            </div>
+            <div className="inline-flex items-center gap-2">
               <div className="inline-flex items-center gap-2 rounded-full border border-[#2a2a2a] bg-[#151515] px-2 py-1.5 text-xs text-[#b1b1b1]">
                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#242424] text-[11px] font-semibold text-[#f0ede8]">
                   {userInitial}
