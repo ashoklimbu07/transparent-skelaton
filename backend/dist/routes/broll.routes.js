@@ -16,12 +16,8 @@ router.post('/generate', async (req, res) => {
     };
     // Covers cancellation during upload/body stream.
     req.on('aborted', handleClientDisconnect);
-    // Covers cancellation while waiting for server processing/response.
-    req.on('close', () => {
-        if (!res.writableEnded) {
-            handleClientDisconnect();
-        }
-    });
+    // Do not use req "close" as cancel signal: it can fire on normal completed uploads
+    // before long server processing starts, which would falsely abort valid requests.
     res.on('close', () => {
         if (!res.writableEnded) {
             handleClientDisconnect();
