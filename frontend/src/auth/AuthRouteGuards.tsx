@@ -33,7 +33,7 @@ export function PublicOnlyRoute({ children }: { children: ReactNode }) {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/generate" replace />;
+    return <Navigate to="/workspace" replace />;
   }
 
   return <>{children}</>;

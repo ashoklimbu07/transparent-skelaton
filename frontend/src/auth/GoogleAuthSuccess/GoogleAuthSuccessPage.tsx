@@ -20,7 +20,7 @@ export function GoogleAuthSuccessPage() {
       for (let attempt = 0; attempt < 3; attempt += 1) {
         const currentUser = await refreshSession();
         if (currentUser) {
-          navigate('/generate', { replace: true });
+          navigate('/workspace', { replace: true });
           return;
         }
 

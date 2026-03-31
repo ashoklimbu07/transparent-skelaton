@@ -12,6 +12,7 @@ import { MediaLibraryPage } from './extra/MediaLibrary/MediaLibraryPage';
 import { PromptCleanerPage } from './tools/PromptCleaner/PromptCleanerPage';
 import { ScriptWriterPage } from './tools/ScriptWriter/ScriptWriterPage';
 import { VideoSceneAnalyzerPage } from './tools/VideoSceneAnalyzer/VideoSceneAnalyzerPage';
+import { WorkspaceHomePage } from './workspace/WorkspaceHomePage';
 
 function App() {
   return (
@@ -20,7 +21,9 @@ function App() {
       <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
       <Route path="/signup" element={<PublicOnlyRoute><SignupPage /></PublicOnlyRoute>} />
       <Route path="/auth/google/success" element={<GoogleAuthSuccessPage />} />
-      <Route path="/generate" element={<ProtectedRoute><GeneratePage /></ProtectedRoute>} />
+      <Route path="/workspace" element={<ProtectedRoute><WorkspaceHomePage /></ProtectedRoute>} />
+      <Route path="/generate" element={<ProtectedRoute><Navigate to="/tools/generate" replace /></ProtectedRoute>} />
+      <Route path="/genrate" element={<ProtectedRoute><Navigate to="/tools/generate" replace /></ProtectedRoute>} />
       <Route path="/tools/generate" element={<ProtectedRoute><GeneratePage /></ProtectedRoute>} />
       <Route path="/tools/video-scene-analyzer" element={<ProtectedRoute><VideoSceneAnalyzerPage /></ProtectedRoute>} />
       <Route path="/tools/script-writer" element={<ProtectedRoute><ScriptWriterPage /></ProtectedRoute>} />

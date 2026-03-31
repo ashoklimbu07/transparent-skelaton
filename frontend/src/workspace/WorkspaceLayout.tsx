@@ -8,6 +8,8 @@ type WorkspaceLayoutProps = {
   headerActions?: ReactNode;
 };
 
+const WAKE_UP_SERVER_URL = 'https://b-roll-1y7k.onrender.com/api/health';
+
 function NavSection({
   title,
   items,
@@ -48,9 +50,12 @@ export function WorkspaceLayout({ children, headerActions }: WorkspaceLayoutProp
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const currentPath = location.pathname === '/generate' ? '/tools/generate' : location.pathname;
+  const currentPath = location.pathname;
   const displayName = user?.name || 'User Profile';
   const userInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
+  const handleWakeUpServerClick = () => {
+    window.open(WAKE_UP_SERVER_URL, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <div className="min-h-screen bg-[#0b0b0b] text-[#f0ede8] font-['DM_Sans']">
@@ -89,6 +94,13 @@ export function WorkspaceLayout({ children, headerActions }: WorkspaceLayoutProp
               <p className="font-['Bebas_Neue'] text-[18px] tracking-[2px] text-[#888888]">
                 Creator <span className="text-[#f0ede8]">Workspace</span>
               </p>
+              <button
+                type="button"
+                onClick={handleWakeUpServerClick}
+                className="inline-flex items-center gap-1.5 border border-[#2f2f2f] bg-[#161616] px-3 py-1.5 text-xs font-medium text-[#b7b7b7] transition-colors hover:border-[#e8380d]/60 hover:text-[#f0ede8]"
+              >
+                Wake Up Server
+              </button>
               {headerActions}
             </div>
             <div className="inline-flex items-center gap-2">

@@ -6,7 +6,6 @@ import { apiService } from '../../services/api.service';
 import { WorkspaceLayout } from '../../workspace/WorkspaceLayout';
 
 export function GenerateToolPage() {
-  const WAKE_UP_SERVER_URL = 'https://b-roll-1y7k.onrender.com/api/health';
   const {
     script,
     setScript,
@@ -48,10 +47,6 @@ export function GenerateToolPage() {
     uploadTextRef.current?.click();
   };
 
-  const handleWakeUpServerClick = () => {
-    window.open(WAKE_UP_SERVER_URL, '_blank', 'noopener,noreferrer');
-  };
-
   useEffect(() => {
     void apiService.wakeBackend();
   }, []);
@@ -76,17 +71,7 @@ export function GenerateToolPage() {
   const displayError = shouldHideInlineError ? null : error;
 
   return (
-    <WorkspaceLayout
-      headerActions={(
-        <button
-          type="button"
-          onClick={handleWakeUpServerClick}
-          className="inline-flex items-center gap-1.5 border border-[#2f2f2f] bg-[#161616] px-3 py-1.5 text-xs font-medium text-[#b7b7b7] transition-colors hover:border-[#e8380d]/60 hover:text-[#f0ede8] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Wake Up Server
-        </button>
-      )}
-    >
+    <WorkspaceLayout>
       <section className="w-full border border-[#222222] bg-[#111111] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)] sm:p-6 md:p-8 lg:p-10">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <h1 className="font-['Bebas_Neue'] text-[28px] tracking-[1px] sm:text-[36px] lg:text-[40px]">
