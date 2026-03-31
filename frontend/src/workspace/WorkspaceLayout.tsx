@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 
 type WorkspaceLayoutProps = {
   children: ReactNode;
+  headerActions?: ReactNode;
 };
 
 function NavSection({
@@ -43,7 +44,7 @@ function NavSection({
   );
 }
 
-export function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
+export function WorkspaceLayout({ children, headerActions }: WorkspaceLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -87,20 +88,23 @@ export function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
             <p className="font-['Bebas_Neue'] text-[18px] tracking-[2px] text-[#888888]">
               Creator <span className="text-[#f0ede8]">Workspace</span>
             </p>
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#2a2a2a] bg-[#151515] px-2 py-1.5 text-xs text-[#b1b1b1]">
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#242424] text-[11px] font-semibold text-[#f0ede8]">
-                {userInitial}
-              </span>
-              <span className="max-w-[120px] truncate pr-1">{displayName}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  void logout().then(() => navigate('/login', { replace: true }));
-                }}
-                className="rounded border border-[#323232] px-2 py-1 text-[10px] uppercase tracking-[1px] text-[#cfcfcf] hover:border-[#ff5a2f] hover:text-white"
-              >
-                Logout
-              </button>
+            <div className="ml-auto inline-flex items-center gap-2">
+              {headerActions}
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#2a2a2a] bg-[#151515] px-2 py-1.5 text-xs text-[#b1b1b1]">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#242424] text-[11px] font-semibold text-[#f0ede8]">
+                  {userInitial}
+                </span>
+                <span className="max-w-[120px] truncate pr-1">{displayName}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void logout().then(() => navigate('/login', { replace: true }));
+                  }}
+                  className="rounded border border-[#323232] px-2 py-1 text-[10px] uppercase tracking-[1px] text-[#cfcfcf] hover:border-[#ff5a2f] hover:text-white"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
           </header>
 
