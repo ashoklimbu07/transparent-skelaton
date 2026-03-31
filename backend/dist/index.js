@@ -32,7 +32,8 @@ function withVercelWwwVariants(origin) {
     }
 }
 function getAllowedOrigins() {
-    const fromEnvRaw = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '')
+    const fromEnvRaw = [process.env.CORS_ORIGIN || '', process.env.FRONTEND_URL || '']
+        .join(',')
         .split(',')
         .map((origin) => normalizeOrigin(origin))
         .filter(Boolean);
