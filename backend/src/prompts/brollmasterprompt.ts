@@ -1,155 +1,80 @@
 /**
- * Master prompt template for B-roll generation - Transparent Skeleton Style
- * This prompt instructs the AI to generate image prompts for each scene
+ * Final-stage B-roll JSON prompt: expands master-analyzer chunk seeds into full scene objects.
+ * Input lines are broll_prompt strings from the master analyzer (already on-character and on-story).
  */
 
-export const transparentSkeletonMasterPrompt = `CINEMATIC SKELETON MASTER PROMPT SYSTEM (JSON OUTPUT VERSION)
+export const transparentSkeletonMasterPrompt = `CINEMATIC SKELETON FINAL B-ROLL (JSON OUTPUT)
 
-STEP 1: Script Analysis (MANDATORY FIRST STEP)
+You receive numbered scene lines from the MASTER ANALYZER. Each line is a seed broll_prompt: it already
+targets the locked glass skeleton, resolved setting, and story beat. Your job is to expand each seed
+into one full JSON scene object — preserve the narrative and visual intent; do not replace the character
+with a human or change the core action.
 
-When the user pastes a dialogue script, internally analyze:
+STEP 1 — Use each seed as the spine of the "scene" field
+Infer emotional tone, environment, and intensity from the seed text. Do not re-output a separate analysis.
 
-Emotional tone
+STEP 2 — Character lock (ABSOLUTE)
+Every scene MUST include the same locked character as in the seeds:
+Ultra realistic anatomical human skeleton; transparent crystal-clear glossy glass outer shell;
+medically accurate bones; subtle confident smirk; Unreal Engine 5 hyper realism, ray traced lighting,
+8K detail, cinematic depth of field. No horror, monster, or cartoon. Anatomy stays accurate.
 
-Core topic
+STEP 3 — Environment & B-roll
+Match lighting and atmosphere to the seed. Background reads as cinematic B-roll (photoreal, context-aware).
+Vary shot type, angle, and framing intelligently across scenes in this batch.
 
-Implied environment
-
-Intensity level
-
-Psychological mood
-
-Narrative energy
-
-This analysis must guide ALL visual decisions. Do NOT output this analysis.
-
-STEP 2: Character Lock (ABSOLUTE – DO NOT MODIFY)
-
-Every scene MUST include the permanently locked character:
-
-Ultra realistic anatomical human skeleton
-
-Transparent crystal-clear glossy glass outer body shell
-
-Medically accurate rib cage, clavicle, spine, pelvis
-
-Natural realistic hand bone structure
-
-Half-closed relaxed eyelids
-
-Subtle confident smirk expression
-
-Unreal Engine 5 hyper realism
-
-Ray traced lighting
-
-8K ultra detail
-
-Cinematic depth of field
-
-Strict Rules:
-
-Character proportions must remain identical in all scenes.
-
-Skeleton facial bone structure must remain unchanged.
-
-Do NOT turn it into horror, monster, or cartoon style.
-
-Keep anatomy medically accurate.
-
-Expression may slightly adapt to emotion but must ALWAYS feel calm and confident.
-
-STEP 3: Environment Adaptation
-
-Choose a smart, context-aware environment based on the script
-
-Lighting must reflect emotional tone
-
-Add cinematic atmosphere (fog, particles, reflections, volumetric light, etc.)
-
-Maintain photorealism at all times
-
-Background must feel like real-world cinematic B-roll
-
-STEP 4: Scene Generation System (MANDATORY RULES)
-
-Generate EXACTLY the scenes explicitly requested in USER INPUT (no extras)
-
-NEVER ask follow-up questions
-
-NEVER mention pagination or future scenes
-
-Maintain perfect character consistency across ALL scenes
-
-STEP 5: JSON OUTPUT FORMAT (MANDATORY)
-
-For EACH scene, output ONE valid JSON object using EXACTLY this structure:
-
+STEP 4 — JSON (MANDATORY)
+Return ONE JSON array. Each element MUST include "id" matching the scene number from USER INPUT (1-based global order).
+Exact shape per object:
 {
-"scene": "Full cinematic description including the locked skeleton character (from Step 2) with consistent anatomy and expression, integrated naturally into the environment and action of the scene.",
-"shot": {
-"type": "Use varied cinematic shot types (e.g., close-up, medium shot, wide shot, over-the-shoulder,top angle ,button angle,macro shot ,extreme close-up,extreme wide shot,etc.) depending on scene context",
-"angle": "Use varied camera angles (e.g., eye level, low angle, high angle, tilt, etc.) based on emotional tone",
-"framing": "Describe composition (e.g., centered, rule of thirds, off-center, foreground framing, etc.)"
-},
-"style": "photorealistic, ultra-detailed, cinematic, high-resolution, sharp focus, professional photography",
-"lighting": {
-"primary": "Describe realistic light sources בהתאם to environment",
-"mood": "Match emotional tone of the scene"
-},
-"background": "Environment description designed as cinematic B-roll, realistic and context-aware",
-"color_palette": "Scene-specific cinematic color grading matching mood and tone",
-"quality": "8k, ultra-realistic, razor-sharp details, intricate textures, cinematic depth of field, subtle bokeh, professional color grading",
-"aspect_ratio": "9:16",
-"strict_prohibitions": [
-"no text anywhere",
-"no cartoon style",
-"no animation",
-"no 3d render",
-"no low quality",
-"no logos or watermarks"
-]
+  "id": <number>,
+  "scene": "Full cinematic description including the locked skeleton, environment, and action.",
+  "shot": {
+    "type": "Varied cinematic shot (close-up, medium, wide, OTS, macro, etc.)",
+    "angle": "eye level, low, high, tilt, etc.",
+    "framing": "composition (rule of thirds, centered, foreground framing, etc.)"
+  },
+  "style": "photorealistic, ultra-detailed, cinematic, high-resolution, sharp focus, professional photography",
+  "lighting": {
+    "primary": "Realistic light sources appropriate to the environment",
+    "mood": "Match emotional tone"
+  },
+  "background": "Cinematic B-roll environment, realistic and context-aware",
+  "color_palette": "Scene-specific grading matching mood",
+  "quality": "8k, ultra-realistic, razor-sharp details, intricate textures, cinematic depth of field, subtle bokeh, professional color grading",
+  "aspect_ratio": "9:16",
+  "strict_prohibitions": [
+    "no text anywhere",
+    "no cartoon style",
+    "no animation",
+    "no 3d render",
+    "no low quality",
+    "no logos or watermarks"
+  ]
 }
 
-GLOBAL OUTPUT RULES
-
-Output ONLY JSON objects (no explanations, no extra text)
-
-Each scene = one JSON object
-Output multiple JSON objects separated by exactly one blank line between objects.
-
-Do NOT wrap in markdown
-
-Do NOT add labels like "Scene 1"
-
-Maintain strict consistency of the skeleton character across all scenes
-
-Shot type, angle, and framing MUST vary intelligently per scene
-
-Background MUST behave like cinematic B-roll and match narrative context
-
-Style, quality, aspect_ratio, and strict_prohibitions MUST remain EXACTLY the same across all scenes`;
+GLOBAL RULES
+- Output ONLY valid JSON (no markdown, no prose outside the array).
+- Generate EXACTLY the scenes listed in USER INPUT — no extras, no omissions.
+- "id" must match the scene numbers provided.
+- strict_prohibitions, style, aspect_ratio, and quality strings must stay consistent across scenes in this response.`;
 
 /**
- * Generate a prompt for B-roll image generation based on scene lines
- * @param sceneLines - Array of scene text lines (batch of scenes)
- * @param startIndex - Starting scene number for this batch
+ * @param sceneLines — broll_prompt strings from master analyzer chunks (one batch)
+ * @param startIndex — zero-based global index of first scene in this batch (used for labels only; ids are explicit in prompt)
  */
 export const generateBrollPrompt = (sceneLines: string[], startIndex: number): string => {
   return `${transparentSkeletonMasterPrompt}
 
-USER INPUT DIALOGUE SCRIPT (FOR ANALYSIS):
-${sceneLines.map((line, idx) => `Scene ${startIndex + idx + 1}: ${line}`).join('\n')}
+USER INPUT — expand each into one JSON object with matching id:
+${sceneLines.map((line, idx) => `Scene id ${startIndex + idx + 1}: ${line}`).join('\n')}
 
-Based on the script provided above, please proceed with STEP 1 (Script Analysis) and then generate scene prompts ONLY for the scenes listed in USER INPUT. Do not generate prompts for any other scenes.`;
+Return a JSON array of exactly ${sceneLines.length} objects, ids ${startIndex + 1} through ${startIndex + sceneLines.length}.`;
 };
 
-/**
- * Configuration for B-roll generation
- */
 export const brollGeneratorConfig = {
   model: 'gemini-2.5-flash',
   temperature: 0.3,
   batchSize: 5,
-  batchDelayMs: 1000, // 1 second between batches
+  batchDelayMs: 1000,
 };

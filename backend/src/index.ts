@@ -148,15 +148,22 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 app.listen(port, () => {
     const brollKeys = getBrollApiKeys();
+    const analyzerKey = process.env.ANALYZER_GEMINI_KEY?.trim() || '';
     console.log('------------------------------------------------');
     console.log(`🚀 BACKEND SERVER RUNNING`);
     console.log(`📡 URL: http://localhost:${port}`);
     console.log(`🔑 GEMINI API KEY (B-Roll): ${brollKeys.length > 0 ? `✅ CONFIGURED (${brollKeys.length} keys)` : '❌ MISSING'}`);
+    console.log(
+        `🧠 ANALYZER KEY: ${analyzerKey ? `✅ CONFIGURED (...${analyzerKey.slice(-4)})` : '❌ MISSING (ANALYZER_GEMINI_KEY)'}`
+    );
     
     // Warning if any key is missing
     if (brollKeys.length === 0) {
         console.log('⚠️  WARNING: Some API keys are missing!');
         console.log('   - No GEMINI_API_KEY_BROLL1..N keys found in .env');
+    }
+    if (!analyzerKey) {
+        console.log('⚠️  WARNING: ANALYZER_GEMINI_KEY is missing.');
     }
     
     console.log(`🏥 HEALTH CHECK: http://localhost:${port}/api/health`);

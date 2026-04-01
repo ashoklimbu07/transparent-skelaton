@@ -95,6 +95,7 @@ export const apiService = {
   generateBroll: async (
     script: string,
     style: string,
+    desiredScenes: number,
     signal?: AbortSignal
   ): Promise<BrollGenerationResponse> => {
     const executeGenerate = async (hasRetriedAfterWake = false): Promise<BrollGenerationResponse> => {
@@ -104,6 +105,7 @@ export const apiService = {
 
         console.log('🎬 Frontend: Sending B-roll generation request to backend...');
         console.log(`   Style: ${style}`);
+        console.log(`   Desired scenes: ${desiredScenes}`);
         console.log(`   Script length: ${script.length}`);
 
         const response = await fetch(`${API_BASE_URL}/broll/generate`, {
@@ -112,7 +114,7 @@ export const apiService = {
             'Content-Type': 'application/json',
             ...getAuthHeaders(),
           },
-          body: JSON.stringify({ script, style }),
+          body: JSON.stringify({ script, style, desiredScenes }),
           credentials: 'include',
           signal,
         });

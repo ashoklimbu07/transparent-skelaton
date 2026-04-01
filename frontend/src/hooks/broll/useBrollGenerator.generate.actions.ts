@@ -33,6 +33,7 @@ export function handleGenerateClickImpl(args: {
 export async function handleGenerateBrollImpl(args: {
   script: string;
   selectedStyle: BrollStyle;
+  desiredScenes: number | null;
   brollAbortRef: AbortRef;
   cancelRequestedRef: BooleanRef;
   setIsGenerating: (value: boolean) => void;
@@ -46,6 +47,7 @@ export async function handleGenerateBrollImpl(args: {
   const {
     script,
     selectedStyle,
+    desiredScenes,
     brollAbortRef,
     cancelRequestedRef,
     setIsGenerating,
@@ -83,6 +85,16 @@ export async function handleGenerateBrollImpl(args: {
     return;
   }
 
+  if (desiredScenes === null || Number.isNaN(desiredScenes)) {
+    setError('Please enter scene number');
+    return;
+  }
+
+  if (desiredScenes < 25 || desiredScenes > 35) {
+    setError('Scene number must be between 25 and 35');
+    return;
+  }
+
   setIsGenerating(true);
   setError(null);
   setShowBrollOutput(false);
@@ -96,7 +108,7 @@ export async function handleGenerateBrollImpl(args: {
 
   try {
     console.log(`🎬 Generating ${selectedStyle} B-roll from script...`);
-    const result = await apiService.generateBroll(script, selectedStyle, controller.signal);
+    const result = await apiService.generateBroll(script, selectedStyle, desiredScenes, controller.signal);
 
     // Frontend-only cancel guard: ignore late results after user clicked cancel.
     if (cancelRequestedRef.current || controller.signal.aborted) {
