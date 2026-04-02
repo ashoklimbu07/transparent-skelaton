@@ -30,7 +30,7 @@ router.post('/generate', async (req: Request, res: Response) => {
   });
 
   try {
-    const { script, style } = req.body;
+    const { script, style, desiredScenes } = req.body;
 
     if (!script || typeof script !== 'string' || script.trim().length === 0) {
       res.status(400).json({ error: 'Script is required and must be a non-empty string' });
@@ -42,6 +42,16 @@ router.post('/generate', async (req: Request, res: Response) => {
       return;
     }
 
+    if (!Number.isInteger(desiredScenes)) {
+      res.status(400).json({ error: 'Desired scenes is required and must be an integer' });
+      return;
+    }
+
+    if (desiredScenes < 25 || desiredScenes > 35) {
+      res.status(400).json({ error: 'Desired scenes must be between 25 and 35' });
+      return;
+    }
+
     // Currently only supporting transparent_skeleton style
     if (style !== 'transparent_skeleton') {
       res.status(400).json({ error: 'Only transparent_skeleton style is currently supported' });
@@ -50,8 +60,9 @@ router.post('/generate', async (req: Request, res: Response) => {
 
     console.log(`🎬 Generating B-roll for style: ${style}`);
     console.log(`📝 Script length: ${script.length}`);
+    console.log(`🎞️ Desired scenes: ${desiredScenes}`);
 
-    const brollPrompts = await brollService.generateBrollPromptsFromScript(script, signal);
+    const brollPrompts = await brollService.generateBrollPromptsFromScript(script, desiredScenes, signal);
 
     // Count scenes from the output blocks (each scene should be one JSON object block).
     const sceneCount = brollPrompts.plainText

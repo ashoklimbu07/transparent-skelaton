@@ -17,6 +17,8 @@ export function GenerateToolPage() {
     showStyleOptions,
     selectedStyle,
     setSelectedStyle,
+    desiredScenes,
+    setDesiredScenes,
     error,
     handleGenerateClick,
     handleGenerateBroll,
@@ -36,7 +38,7 @@ export function GenerateToolPage() {
   const uploadTextRef = useRef<HTMLInputElement | null>(null);
 
   const handlePromptGenerate = () => {
-    if (!script.trim() || !selectedStyle) {
+    if (!script.trim() || !selectedStyle || desiredScenes === null) {
       promptRef.current?.focus();
       return;
     }
@@ -65,7 +67,12 @@ export function GenerateToolPage() {
 
   const trimmedLength = script.trim().length;
   const isScriptLengthInvalid = trimmedLength > 0 && (trimmedLength < 1000 || trimmedLength > 1500);
-  const scriptValidationErrors = ['Please enter a script first', 'Please select a style first'];
+  const scriptValidationErrors = [
+    'Please enter a script first',
+    'Please select a style first',
+    'Please enter scene number',
+    'Scene number must be between 25 and 35',
+  ];
   const shouldHideInlineError =
     !!error && (scriptValidationErrors.includes(error) || error.includes('between 1000 and 1500 characters'));
   const displayError = shouldHideInlineError ? null : error;
@@ -197,6 +204,26 @@ export function GenerateToolPage() {
         </div>
 
         <div className="mt-4 border-t border-[#252525] pt-3">
+          <div className="mb-3">
+            <label htmlFor="desired-scenes" className="mb-1 block text-xs uppercase tracking-[.8px] text-[#888888]">
+              Desired scenes (25-35) *
+            </label>
+            <input
+              id="desired-scenes"
+              type="number"
+              min={25}
+              max={35}
+              required
+              disabled={isGenerating}
+              value={desiredScenes ?? ''}
+              onChange={(event) => {
+                const value = event.target.value;
+                setDesiredScenes(value === '' ? null : Number(value));
+              }}
+              placeholder="e.g. 30"
+              className="w-full max-w-[220px] border border-[#2f2f2f] bg-[#161616] px-3 py-2 text-sm text-[#f0ede8] outline-none transition-colors focus:border-[#ff5a2f] disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          </div>
           <div className="flex w-full justify-end">
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
               {isGenerating ? (
@@ -211,7 +238,7 @@ export function GenerateToolPage() {
               <button
                 type="button"
                 onClick={handlePromptGenerate}
-                disabled={isGenerating || !script.trim() || !selectedStyle}
+                disabled={isGenerating || !script.trim() || !selectedStyle || desiredScenes === null}
                 className="inline-flex items-center justify-center gap-2 border border-[#e8380d] bg-[#e8380d] px-7 py-3 text-sm font-semibold uppercase tracking-[.7px] text-white transition-colors hover:border-[#ff4d20] hover:bg-[#ff4d20] disabled:cursor-not-allowed disabled:opacity-50 sm:min-w-[220px]"
               >
                 <Send size={16} />

@@ -5,6 +5,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { brollRoutes } from './routes/broll.routes.js';
+import { manualStoryRoutes } from './routes/manualStory.routes.js';
 import { renderHealthStatusPage } from './components/healthStatusPage.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { requireAuth } from './middleware/requireAuth.js';
@@ -88,6 +89,7 @@ app.use((req, res, next) => {
 });
 // Routes
 app.use('/api/broll', requireAuth, brollRoutes);
+app.use('/api/manual-story', requireAuth, manualStoryRoutes);
 app.use('/api/auth', authRoutes);
 app.get('/api/health', (req, res) => {
     const brollKeys = getBrollApiKeys();
@@ -123,14 +125,24 @@ app.use((err, req, res, next) => {
 });
 app.listen(port, () => {
     const brollKeys = getBrollApiKeys();
+    const analyzerKey = process.env.ANALYZER_GEMINI_KEY?.trim() || '';
+    const manualStoryKey = process.env.GEMINI_API_KEY_MANUALSTORY?.trim() || '';
     console.log('------------------------------------------------');
     console.log(`🚀 BACKEND SERVER RUNNING`);
     console.log(`📡 URL: http://localhost:${port}`);
     console.log(`🔑 GEMINI API KEY (B-Roll): ${brollKeys.length > 0 ? `✅ CONFIGURED (${brollKeys.length} keys)` : '❌ MISSING'}`);
+    console.log(`📝 MANUAL STORY KEY: ${manualStoryKey ? `✅ CONFIGURED (...${manualStoryKey.slice(-4)})` : '❌ MISSING (GEMINI_API_KEY_MANUALSTORY)'}`);
+    console.log(`🧠 ANALYZER KEY: ${analyzerKey ? `✅ CONFIGURED (...${analyzerKey.slice(-4)})` : '❌ MISSING (ANALYZER_GEMINI_KEY)'}`);
     // Warning if any key is missing
     if (brollKeys.length === 0) {
         console.log('⚠️  WARNING: Some API keys are missing!');
         console.log('   - No GEMINI_API_KEY_BROLL1..N keys found in .env');
+    }
+    if (!analyzerKey) {
+        console.log('⚠️  WARNING: ANALYZER_GEMINI_KEY is missing.');
+    }
+    if (!manualStoryKey) {
+        console.log('⚠️  WARNING: GEMINI_API_KEY_MANUALSTORY is missing.');
     }
     console.log(`🏥 HEALTH CHECK: http://localhost:${port}/api/health`);
     console.log('------------------------------------------------');

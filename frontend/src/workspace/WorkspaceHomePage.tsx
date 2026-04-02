@@ -7,7 +7,7 @@ function NavGroup({ title, items }: { title: string; items: WorkspaceNavItem[] }
   return (
     <section className="border border-[#252525] bg-[#121212] p-5">
       <p className="text-[11px] uppercase tracking-[2px] text-[#7a7a7a]">{title}</p>
-      <div className="mt-4 space-y-2">
+      <div className="mt-4 space-y-2.5">
         {items.map((item) => (
           <Link
             key={item.path}

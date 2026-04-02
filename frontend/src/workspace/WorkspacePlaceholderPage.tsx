@@ -11,9 +11,9 @@ export function WorkspacePlaceholderPage({
 }: WorkspacePlaceholderPageProps) {
   return (
     <WorkspaceLayout>
-      <section className="w-full border border-[#222222] bg-[#111111] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-        <h1 className="font-['Bebas_Neue'] text-[34px] tracking-[1px] text-[#f0ede8]">{title}</h1>
-        <p className="mt-3 text-sm text-[#9a9a9a]">{message}</p>
+      <section className="w-full border border-[#222222] bg-[#111111] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)] sm:p-6 md:p-8">
+        <h1 className="font-['Bebas_Neue'] text-[30px] tracking-[1px] text-[#f0ede8] sm:text-[34px]">{title}</h1>
+        <p className="mt-3 text-sm leading-relaxed text-[#9a9a9a]">{message}</p>
       </section>
     </WorkspaceLayout>
   );

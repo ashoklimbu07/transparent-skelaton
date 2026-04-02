@@ -55,6 +55,7 @@ export const useBrollGenerator = () => {
   });
   const [showStyleOptions, setShowStyleOptions] = useState(false);
   const [selectedStyle, setSelectedStyle] = useState<BrollStyle>('');
+  const [desiredScenes, setDesiredScenes] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showClearDialog, setShowClearDialog] = useState(false);
   const [showDeleteBrollDialog, setShowDeleteBrollDialog] = useState(false);
@@ -78,6 +79,7 @@ export const useBrollGenerator = () => {
     await handleGenerateBrollImpl({
       script,
       selectedStyle,
+      desiredScenes,
       brollAbortRef,
       cancelRequestedRef,
       setIsGenerating,
@@ -161,6 +163,8 @@ export const useBrollGenerator = () => {
     showStyleOptions,
     selectedStyle,
     setSelectedStyle,
+    desiredScenes,
+    setDesiredScenes,
     error,
     handleGenerateClick,
     handleGenerateBroll,
