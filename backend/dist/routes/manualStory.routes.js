@@ -19,7 +19,7 @@ router.post('/generate', async (req, res) => {
             handleClientDisconnect();
     });
     try {
-        const { characters, scenes } = req.body;
+        const { characters, scenes, style } = req.body;
         if (!characters || typeof characters !== 'object' || Array.isArray(characters)) {
             res.status(400).json({ error: 'characters must be an object like { "c1": "detail", ... }' });
             return;
@@ -30,6 +30,10 @@ router.post('/generate', async (req, res) => {
         }
         if (scenes.length > 5) {
             res.status(400).json({ error: 'Maximum scenes is 5 for now.' });
+            return;
+        }
+        if (style !== 'cinematic-35mm' && style !== 'photorealistic') {
+            res.status(400).json({ error: 'style must be either "cinematic-35mm" or "photorealistic"' });
             return;
         }
         const scenesClean = scenes
@@ -60,6 +64,7 @@ router.post('/generate', async (req, res) => {
         const result = await generateManualStoryPrompts({
             characters: charactersClean,
             scenes: scenesClean,
+            style,
             signal,
         });
         res.json({

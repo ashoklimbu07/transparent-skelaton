@@ -9,7 +9,7 @@ function getManualStoryGeminiKey() {
     return key;
 }
 export async function generateManualStoryPrompts(args) {
-    const { characters, scenes, signal } = args;
+    const { characters, scenes, style, signal } = args;
     if (signal?.aborted) {
         const err = new Error('Cancelled');
         err.name = 'AbortError';
@@ -28,7 +28,7 @@ export async function generateManualStoryPrompts(args) {
     });
     const result = await model.generateContent([
         { text: getManualStorySystemPrompt() },
-        { text: getManualStoryUserPrompt({ characters, scenes }) },
+        { text: getManualStoryUserPrompt({ characters, scenes, style }) },
     ]);
     if (signal?.aborted) {
         const err = new Error('Cancelled');
@@ -37,13 +37,41 @@ export async function generateManualStoryPrompts(args) {
     }
     const rawText = result.response.text();
     const parsed = safeParseJSON(rawText);
-    const promptsByScene = Array.isArray(parsed.promptsByScene) ? parsed.promptsByScene : [];
+    const promptsByScene = [];
+    if (Array.isArray(parsed.promptsByScene) && parsed.promptsByScene.length > 0) {
+        for (const item of parsed.promptsByScene) {
+            if (!item || typeof item.sceneIndex !== 'number' || typeof item.imagePrompt !== 'string')
+                continue;
+            const imagePrompt = item.imagePrompt.trim();
+            if (!imagePrompt)
+                continue;
+            promptsByScene.push({ sceneIndex: item.sceneIndex, imagePrompt });
+        }
+    }
+    else if (Array.isArray(parsed.scenes) && parsed.scenes.length > 0) {
+        for (const item of parsed.scenes) {
+            if (!item || typeof item.sceneIndex !== 'number')
+                continue;
+            const candidatePrompt = (typeof item.mainImagePrompt === 'string' && item.mainImagePrompt.trim()) ||
+                (typeof item.imagePrompt === 'string' && item.imagePrompt.trim()) ||
+                (typeof item.broll?.brollPrompt === 'string' && item.broll.brollPrompt.trim()) ||
+                '';
+            if (!candidatePrompt)
+                continue;
+            promptsByScene.push({ sceneIndex: item.sceneIndex, imagePrompt: candidatePrompt });
+        }
+    }
     if (promptsByScene.length !== scenes.length) {
         throw new Error(`Manual story generation returned ${promptsByScene.length} prompts, expected ${scenes.length}.`);
     }
     // Ensure stable ordering by sceneIndex.
     const normalized = [...promptsByScene].sort((a, b) => a.sceneIndex - b.sceneIndex);
-    const promptsPlain = normalized.map((p) => p.imagePrompt.trim()).join('\n\n');
+    const promptsPlain = normalized
+        .map((p) => JSON.stringify({
+        sceneIndex: p.sceneIndex,
+        imagePrompt: p.imagePrompt.trim(),
+    }))
+        .join('\n\n');
     return { promptsByScene: normalized, promptsPlain };
 }
 //# sourceMappingURL=manualStory.service.js.map

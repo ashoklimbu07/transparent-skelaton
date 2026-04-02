@@ -9,6 +9,7 @@ export type ManualStoryGenerationResult = {
 export declare function generateManualStoryPrompts(args: {
     characters: Record<string, string>;
     scenes: string[];
+    style: 'cinematic-35mm' | 'photorealistic';
     signal?: AbortSignal;
 }): Promise<ManualStoryGenerationResult>;
 //# sourceMappingURL=manualStory.service.d.ts.map

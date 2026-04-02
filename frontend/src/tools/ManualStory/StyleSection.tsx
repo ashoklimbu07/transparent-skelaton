@@ -45,7 +45,7 @@ export function StyleSection({ style, isGenerating, onChangeStyle }: StyleSectio
 
         <div
           className={`rounded border px-3 py-2 text-left text-xs transition-colors ${
-            style === 'photorealistic' || style === 'photorealistic-minimal'
+            style === 'photorealistic'
               ? 'border-[#ff5a2f] bg-[#20110d] text-[#ffd4c7]'
               : 'border-[#2f2f2f] bg-[#161616] text-[#9c9c9c] hover:border-[#ff5a2f]/50 hover:text-[#f0ede8]'
           }`}

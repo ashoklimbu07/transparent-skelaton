@@ -41,10 +41,8 @@ router.post('/generate', async (req: Request, res: Response) => {
       res.status(400).json({ error: 'Maximum scenes is 5 for now.' });
       return;
     }
-    if (style !== 'cinematic-35mm' && style !== 'photorealistic' && style !== 'photorealistic-minimal') {
-      res
-        .status(400)
-        .json({ error: 'style must be either "cinematic-35mm", "photorealistic", or "photorealistic-minimal"' });
+    if (style !== 'cinematic-35mm' && style !== 'photorealistic') {
+      res.status(400).json({ error: 'style must be either "cinematic-35mm" or "photorealistic"' });
       return;
     }
 

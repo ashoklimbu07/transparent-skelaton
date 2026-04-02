@@ -50,10 +50,7 @@ export function loadPersistedState():
       scenesTextarea: typeof parsed.scenesTextarea === 'string' ? parsed.scenesTextarea : '',
       promptsPlain: typeof parsed.promptsPlain === 'string' ? parsed.promptsPlain : '',
       promptsByScene: safePromptsByScene,
-      style:
-        parsed.style === 'photorealistic-minimal' || parsed.style === 'photorealistic'
-          ? 'photorealistic'
-          : 'cinematic-35mm',
+      style: parsed.style === 'photorealistic' ? 'photorealistic' : 'cinematic-35mm',
     };
   } catch {
     return null;
