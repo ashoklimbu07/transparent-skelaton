@@ -38,7 +38,7 @@ export function GenerateActions({
           title="Generate scene image prompts"
         >
           <Send size={16} />
-          Generate Prompts
+          {isGenerating ? 'Generating..' : 'Generate Prompts'}
         </button>
       </div>
     </div>
