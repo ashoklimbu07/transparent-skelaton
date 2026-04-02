@@ -9,6 +9,7 @@ import { GoogleAuthSuccessPage } from './auth/GoogleAuthSuccess/GoogleAuthSucces
 import { ProtectedRoute, PublicOnlyRoute } from './auth/AuthRouteGuards';
 import { HistoryPage } from './extra/History/HistoryPage';
 import { MediaLibraryPage } from './extra/MediaLibrary/MediaLibraryPage';
+import { ManualStoryPage } from './tools/ManualStory/ManualStoryPage';
 import { PromptCleanerPage } from './tools/PromptCleaner/PromptCleanerPage';
 import { ScriptWriterPage } from './tools/ScriptWriter/ScriptWriterPage';
 import { VideoSceneAnalyzerPage } from './tools/VideoSceneAnalyzer/VideoSceneAnalyzerPage';
@@ -28,6 +29,7 @@ function App() {
       <Route path="/tools/video-scene-analyzer" element={<ProtectedRoute><VideoSceneAnalyzerPage /></ProtectedRoute>} />
       <Route path="/tools/script-writer" element={<ProtectedRoute><ScriptWriterPage /></ProtectedRoute>} />
       <Route path="/tools/prompt-cleaner" element={<ProtectedRoute><PromptCleanerPage /></ProtectedRoute>} />
+      <Route path="/tools/manual-story" element={<ProtectedRoute><ManualStoryPage /></ProtectedRoute>} />
       <Route path="/extra/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
       <Route path="/extra/media-library" element={<ProtectedRoute><MediaLibraryPage /></ProtectedRoute>} />
       <Route path="/account/theme" element={<ProtectedRoute><ThemePage /></ProtectedRoute>} />

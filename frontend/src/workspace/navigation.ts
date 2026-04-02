@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { Eraser, FileText, History, Library, Palette, Search, Settings, Sparkles } from 'lucide-react';
+import { BookOpen, Eraser, FileText, History, Library, Palette, Search, Settings, Sparkles } from 'lucide-react';
 
 export type WorkspaceNavItem = {
   icon: LucideIcon;
@@ -11,6 +11,7 @@ export const toolsNavItems: WorkspaceNavItem[] = [
   { icon: Sparkles, label: 'Generate B-roll', path: '/tools/generate' },
   { icon: Search, label: 'Video Scene Analyzer', path: '/tools/video-scene-analyzer' },
   { icon: FileText, label: 'Script Writer', path: '/tools/script-writer' },
+  { icon: BookOpen, label: 'Manual Story', path: '/tools/manual-story' },
   { icon: Eraser, label: 'Prompt Cleaner', path: '/tools/prompt-cleaner' },
 ];
 
