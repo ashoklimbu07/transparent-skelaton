@@ -98,7 +98,7 @@ export interface ManualStoryGenerationResponse {
   promptsPlain: string; // JSON objects separated by exactly one blank line (for TXT/copy)
 }
 
-export type ManualStoryStyle = 'cinematic-35mm' | 'photorealistic' | 'photorealistic-minimal';
+export type ManualStoryStyle = 'cinematic-35mm' | 'photorealistic';
 
 export const apiService = {
   wakeBackend: async (signal?: AbortSignal): Promise<boolean> => {

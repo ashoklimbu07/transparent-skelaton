@@ -8,4 +8,4 @@ export type ScenePrompt = {
   imagePrompt: string;
 };
 
-export type ManualStoryStyle = 'cinematic-35mm' | 'photorealistic' | 'photorealistic-minimal';
+export type ManualStoryStyle = 'cinematic-35mm' | 'photorealistic';

@@ -25,7 +25,7 @@ function getManualStoryGeminiKey(): string {
 export async function generateManualStoryPrompts(args: {
   characters: Record<string, string>;
   scenes: string[];
-  style: 'cinematic-35mm' | 'photorealistic' | 'photorealistic-minimal';
+  style: 'cinematic-35mm' | 'photorealistic';
   signal?: AbortSignal;
 }): Promise<ManualStoryGenerationResult> {
   const { characters, scenes, style, signal } = args;
