@@ -10,7 +10,7 @@ Rules you MUST follow:
 - Maintain character consistency across ALL scenes by using the exact user-provided detail for each referenced cX.
 - If a scene mentions cX, include that character's full detail in the prompt (clothing + identity descriptors).
 - Do not output placeholders like "c1", "c2", etc. Replace each cX reference with the exact matching character detail from input.
-- Only generate prompts for the provided scenes, in the same order.
+- Only generate prompts for the provided scenes, in the same order; preserve each scene's numeric label (e.g. Scene 6 stays 6 in output, never renumbered to 1).
 - Focus on visual composition: subject action, setting, lighting, camera angle, and selected style.
 - The output MUST be valid JSON only. No markdown, no backticks, no commentary.
 `;
@@ -18,7 +18,7 @@ Rules you MUST follow:
 
 export function getManualStoryUserPrompt(args: {
   characters: Record<string, string>;
-  scenes: string[];
+  scenes: Array<{ sceneIndex: number; text: string }>;
   style: 'cinematic-35mm' | 'photorealistic';
 }): string {
   const styleGuide =
@@ -30,9 +30,7 @@ export function getManualStoryUserPrompt(args: {
     .map(([k, v]) => `${k}: ${v}`)
     .join('\n');
 
-  const scenesLines = args.scenes
-    .map((s, idx) => `Scene ${idx + 1}: ${s}`)
-    .join('\n');
+  const scenesLines = args.scenes.map((s) => `Scene ${s.sceneIndex}: ${s.text}`).join('\n');
 
   return `CHARACTERS (c1..c5):
 ${characterLines || '(none)'}
@@ -51,14 +49,14 @@ For each user scene, create:
 1) One primary image prompt for the exact scene moment.
 2) One super-catchy b-roll concept derived from that same scene, designed to increase impact while staying context-consistent.
 
-Return exactly ${args.scenes.length} scene items in the same order as input scenes.
+Return exactly ${args.scenes.length} scene items in the same order as the SCENES block above (sorted by scene number).
 
 OUTPUT JSON (ONLY):
 {
   "scenes": [
     {
-      "sceneIndex": 1,
-      "sourceScene": "Exact text of Scene 1 , 2, 3, etc. from input",
+      "sceneIndex": 6,
+      "sourceScene": "verbatim scene body from the matching Scene 6 line (no Scene 6: prefix)",
       "style": "selected style value",
       "mainImagePrompt": "single-line prompt for the primary scene moment",
       "broll": {
@@ -73,6 +71,7 @@ OUTPUT JSON (ONLY):
 }
 
 Field requirements:
+- "sceneIndex" MUST equal the user's scene number for that row (not 1,2,3 by position unless the input used 1,2,3).
 - "sourceScene" must copy the matching input scene text exactly.
 - "mainImagePrompt" and "broll.brollPrompt" must each be a single line string (no newline characters).
 - "cameraAngle" and "backgroundMatch" are mandatory and specific (no vague text).

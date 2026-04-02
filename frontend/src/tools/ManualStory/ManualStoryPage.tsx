@@ -98,6 +98,12 @@ export function ManualStoryPage() {
       return;
     }
 
+    const sceneIndices = scenes.map((s) => s.sceneIndex);
+    if (new Set(sceneIndices).size !== sceneIndices.length) {
+      setError('Each scene number must be unique (duplicate Scene N labels detected).');
+      return;
+    }
+
     const referenced = findReferencedCharacters(scenesTextarea);
     const missing = referenced.filter((id) => !enabledCharacterMap[id]);
     if (missing.length > 0) {
@@ -123,16 +129,12 @@ export function ManualStoryPage() {
     setIsGenerating(true);
 
     try {
-      // Cast to avoid local TS type drift; runtime payload shape is what we use below.
-      const resp = (await (apiService as any).generateManualStoryPrompts({
+      const resp = await apiService.generateManualStoryPrompts({
         characters: enabledCharacterMap,
         scenes,
         style,
         signal: abortController.signal,
-      })) as {
-        promptsPlain: string;
-        promptsByScene: ScenePrompt[];
-      };
+      });
 
       setPromptsPlain(resp.promptsPlain);
       setPromptsByScene(resp.promptsByScene);

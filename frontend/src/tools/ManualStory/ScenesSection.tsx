@@ -43,7 +43,7 @@ export function ScenesSection({
           value={scenesTextarea}
           onChange={(e) => onChangeScenesTextarea(e.target.value)}
           placeholder={
-            'e.g. Scene 1: c1 is making coffee...\n\nScene 2: c2 walks in...\n\nScene 3: ...\n\nScene 4: ...\n\nScene 5: ...'
+            'e.g. Scene 6: c1 is making coffee...\n\nScene 7: c2 walks in...\n\n(Scene numbers are kept in generated output; or use blank lines for Scene 1, 2, 3...)'
           }
           className="min-h-[160px] w-full resize-y rounded border border-[#2f2f2f] bg-[#161616] p-3 text-sm text-[#f0ede8] outline-none transition-colors focus:border-[#ff5a2f]"
           disabled={isGenerating}

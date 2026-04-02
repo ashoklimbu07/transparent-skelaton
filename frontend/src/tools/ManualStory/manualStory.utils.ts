@@ -1,4 +1,4 @@
-import type { ManualCharacter, ManualStoryStyle, ScenePrompt } from './manualStory.types';
+import type { ManualCharacter, ManualStorySceneInput, ManualStoryStyle, ScenePrompt } from './manualStory.types';
 
 export const CHARACTER_SLOTS = 5;
 export const MAX_SCENES = 5;
@@ -84,7 +84,7 @@ export function formatScenePromptJson(scenePrompt: ScenePrompt): string {
   );
 }
 
-export function parseScenesFromTextarea(raw: string): string[] {
+export function parseScenesFromTextarea(raw: string): ManualStorySceneInput[] {
   const text = normalizeInputNewlines(raw).trim();
   if (!text) return [];
 
@@ -111,15 +111,16 @@ export function parseScenesFromTextarea(raw: string): string[] {
     scenes.sort((a, b) => a.index - b.index);
     return scenes
       .slice(0, MAX_SCENES)
-      .map((s) => s.value)
-      .filter((s) => s.trim().length > 0);
+      .map((s) => ({ sceneIndex: s.index, text: s.value }))
+      .filter((s) => s.text.trim().length > 0);
   }
 
   return text
     .split(/\n{2,}/)
     .map((s) => s.trim())
     .filter(Boolean)
-    .slice(0, MAX_SCENES);
+    .slice(0, MAX_SCENES)
+    .map((body, idx) => ({ sceneIndex: idx + 1, text: body }));
 }
 
 export function findReferencedCharacters(sceneText: string): Array<'c1' | 'c2' | 'c3' | 'c4' | 'c5'> {

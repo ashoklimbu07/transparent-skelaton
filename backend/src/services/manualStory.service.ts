@@ -24,11 +24,12 @@ function getManualStoryGeminiKey(): string {
 
 export async function generateManualStoryPrompts(args: {
   characters: Record<string, string>;
-  scenes: string[];
+  scenes: Array<{ sceneIndex: number; text: string }>;
   style: 'cinematic-35mm' | 'photorealistic';
   signal?: AbortSignal;
 }): Promise<ManualStoryGenerationResult> {
-  const { characters, scenes, style, signal } = args;
+  const { characters, style, signal } = args;
+  const orderedScenes = [...args.scenes].sort((a, b) => a.sceneIndex - b.sceneIndex);
 
   if (signal?.aborted) {
     const err = new Error('Cancelled') as Error & { name: string };
@@ -79,7 +80,7 @@ export async function generateManualStoryPrompts(args: {
     try {
       const result = await model.generateContent([
         { text: getManualStorySystemPrompt() },
-        { text: `${getManualStoryUserPrompt({ characters, scenes, style })}${retryInstruction}` },
+        { text: `${getManualStoryUserPrompt({ characters, scenes: orderedScenes, style })}${retryInstruction}` },
       ]);
 
       if (signal?.aborted) {
@@ -142,14 +143,24 @@ export async function generateManualStoryPrompts(args: {
     }
   }
 
-  if (promptsByScene.length !== scenes.length) {
+  if (promptsByScene.length !== orderedScenes.length) {
     throw new Error(
-      `Manual story generation returned ${promptsByScene.length} prompts, expected ${scenes.length}.`,
+      `Manual story generation returned ${promptsByScene.length} prompts, expected ${orderedScenes.length}.`,
     );
   }
 
-  // Ensure stable ordering by sceneIndex.
+  // Ensure stable ordering by sceneIndex and match user's scene numbers (not 1..n by position).
   const normalized = [...promptsByScene].sort((a, b) => a.sceneIndex - b.sceneIndex);
+
+  for (let i = 0; i < orderedScenes.length; i += 1) {
+    const expected = orderedScenes[i]!.sceneIndex;
+    const got = normalized[i]?.sceneIndex;
+    if (got !== expected) {
+      throw new Error(
+        `Manual story sceneIndex mismatch at position ${i + 1}: expected ${expected}, model returned ${got ?? 'missing'}.`,
+      );
+    }
+  }
 
   const promptsPlain = normalized
     .map((p) =>

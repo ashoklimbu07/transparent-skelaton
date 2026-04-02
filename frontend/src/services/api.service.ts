@@ -198,7 +198,7 @@ export const apiService = {
 
   generateManualStoryPrompts: async (args: {
     characters: Record<string, string>;
-    scenes: string[];
+    scenes: Array<{ sceneIndex: number; text: string }>;
     style: ManualStoryStyle;
     signal?: AbortSignal;
   }): Promise<ManualStoryGenerationResponse> => {
