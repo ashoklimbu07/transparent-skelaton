@@ -4,7 +4,7 @@ import { getManualStorySystemPrompt, getManualStoryUserPrompt } from '../prompts
 function getManualStoryGeminiKey() {
     const key = process.env.GEMINI_API_KEY_MANUALSTORY?.trim() || '';
     if (!key) {
-        throw new Error('Missing GEMINI_API_KEY_MANUALSTORY. Add a dedicated Gemini key for Manual Story generation in backend/.env.');
+        throw new Error('Missing GEMINI_API_KEY_MANUALSTORY. Add a dedicated Gemini key for Manual Story generation');
     }
     return key;
 }
@@ -22,24 +22,49 @@ export async function generateManualStoryPrompts(args) {
     const model = genAI.getGenerativeModel({
         model: modelName,
         generationConfig: {
-            maxOutputTokens: 4096,
+            maxOutputTokens: 8192,
             temperature: Number.isFinite(temperature) ? temperature : 0.7,
+            responseMimeType: 'application/json',
         },
     });
-    const result = await model.generateContent([
-        { text: getManualStorySystemPrompt() },
-        { text: getManualStoryUserPrompt({ characters, scenes, style }) },
-    ]);
-    if (signal?.aborted) {
-        const err = new Error('Cancelled');
-        err.name = 'AbortError';
-        throw err;
+    const parseModelOutput = (rawText) => safeParseJSON(rawText);
+    let parsed = null;
+    let lastError = null;
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        const retryInstruction = attempt === 1
+            ? ''
+            : '\n\nIMPORTANT RETRY INSTRUCTION:\nYour previous response was invalid or truncated JSON. Return only valid, complete JSON that exactly matches the requested schema. Do not include markdown or extra text.';
+        try {
+            const result = await model.generateContent([
+                { text: getManualStorySystemPrompt() },
+                { text: `${getManualStoryUserPrompt({ characters, scenes, style })}${retryInstruction}` },
+            ]);
+            if (signal?.aborted) {
+                const err = new Error('Cancelled');
+                err.name = 'AbortError';
+                throw err;
+            }
+            const rawText = result.response.text();
+            parsed = parseModelOutput(rawText);
+            break;
+        }
+        catch (error) {
+            lastError = error;
+            if (attempt === maxAttempts) {
+                const message = error instanceof Error ? error.message : String(error ?? 'Unknown error');
+                throw new Error(`Manual story generation failed after ${maxAttempts} attempts: ${message}`);
+            }
+        }
     }
-    const rawText = result.response.text();
-    const parsed = safeParseJSON(rawText);
+    if (!parsed) {
+        const message = lastError instanceof Error ? lastError.message : String(lastError ?? 'Unknown error');
+        throw new Error(`Manual story generation failed: ${message}`);
+    }
+    const parsedOutput = parsed;
     const promptsByScene = [];
-    if (Array.isArray(parsed.promptsByScene) && parsed.promptsByScene.length > 0) {
-        for (const item of parsed.promptsByScene) {
+    if (Array.isArray(parsedOutput.promptsByScene) && parsedOutput.promptsByScene.length > 0) {
+        for (const item of parsedOutput.promptsByScene) {
             if (!item || typeof item.sceneIndex !== 'number' || typeof item.imagePrompt !== 'string')
                 continue;
             const imagePrompt = item.imagePrompt.trim();
@@ -48,8 +73,8 @@ export async function generateManualStoryPrompts(args) {
             promptsByScene.push({ sceneIndex: item.sceneIndex, imagePrompt });
         }
     }
-    else if (Array.isArray(parsed.scenes) && parsed.scenes.length > 0) {
-        for (const item of parsed.scenes) {
+    else if (Array.isArray(parsedOutput.scenes) && parsedOutput.scenes.length > 0) {
+        for (const item of parsedOutput.scenes) {
             if (!item || typeof item.sceneIndex !== 'number')
                 continue;
             const candidatePrompt = (typeof item.mainImagePrompt === 'string' && item.mainImagePrompt.trim()) ||
