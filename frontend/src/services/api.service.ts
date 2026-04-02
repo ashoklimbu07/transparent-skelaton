@@ -87,6 +87,19 @@ export interface BrollGenerationResponse {
   totalScenes: number;
 }
 
+export interface ManualStoryGenerationResponse {
+  success: boolean;
+  sceneCount: number;
+  characterCount: number;
+  promptsByScene: Array<{
+    sceneIndex: number;
+    imagePrompt: string;
+  }>;
+  promptsPlain: string; // JSON objects separated by exactly one blank line (for TXT/copy)
+}
+
+export type ManualStoryStyle = 'cinematic-35mm' | 'photorealistic' | 'photorealistic-minimal';
+
 export const apiService = {
   wakeBackend: async (signal?: AbortSignal): Promise<boolean> => {
     return tryWakeBackend(signal);
@@ -181,5 +194,52 @@ export const apiService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  generateManualStoryPrompts: async (args: {
+    characters: Record<string, string>;
+    scenes: string[];
+    style: ManualStoryStyle;
+    signal?: AbortSignal;
+  }): Promise<ManualStoryGenerationResponse> => {
+    const { characters, scenes, style, signal } = args;
+
+    const execute = async (): Promise<ManualStoryGenerationResponse> => {
+      try {
+        // Proactively ping health so cold backends (e.g. Render) wake before heavy work.
+        await tryWakeBackend(signal);
+
+        const response = await fetch(`${API_BASE_URL}/manual-story/generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify({ characters, scenes, style }),
+          credentials: 'include',
+          signal,
+        });
+
+        if (!response.ok) {
+          const error = await parseJsonResponse<{ error?: string; details?: string }>(
+            response,
+            'Manual story generation',
+          );
+          const details: string = typeof error.details === 'string' ? error.details : '';
+          const message = details ? `${error.error}: ${details}` : error.error || 'Failed to generate prompts';
+          throw new Error(message);
+        }
+
+        return await parseJsonResponse<ManualStoryGenerationResponse>(response, 'Manual story generation');
+      } catch (e: unknown) {
+        if (e instanceof Error) {
+          if (e.name === 'AbortError') throw e;
+        }
+        // Network fail / backend down:
+        throw e;
+      }
+    };
+
+    return execute();
   },
 };
