@@ -1,4 +1,4 @@
-# Personal Content Automation Tool
+# Personal Content Automation Tool ( active development)
 
 This is my personal automation tool for content creation.
 
