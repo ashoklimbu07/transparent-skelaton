@@ -73,7 +73,7 @@ Return a JSON array of exactly ${sceneLines.length} objects, ids ${startIndex + 
 };
 
 export const brollGeneratorConfig = {
-  model: 'gemini-2.5-flash',
+  model: 'gemini-2.5-flash-lite',
   temperature: 0.3,
   batchSize: 5,
   batchDelayMs: 1000,

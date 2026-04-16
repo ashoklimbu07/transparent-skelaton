@@ -38,7 +38,7 @@ export async function generateManualStoryPrompts(args: {
   }
 
   const geminiKey = getManualStoryGeminiKey();
-  const modelName = process.env.MANUAL_STORY_GEMINI_MODEL?.trim() || 'gemini-2.5-flash';
+  const modelName = process.env.MANUAL_STORY_GEMINI_MODEL?.trim() || 'gemini-2.5-flash-lite';
   const temperature = process.env.MANUAL_STORY_TEMPERATURE ? Number(process.env.MANUAL_STORY_TEMPERATURE) : 0.7;
 
   const genAI = new GoogleGenerativeAI(geminiKey);
