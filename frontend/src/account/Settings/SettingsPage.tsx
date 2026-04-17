@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { ConfirmModal } from '../../tools/ManualStory/ConfirmModal';
 import { WorkspaceLayout } from '../../workspace/WorkspaceLayout';
 
 export function AccountSettingsPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const fullName = user?.name?.trim() || '';
   const [firstName = 'User'] = fullName.split(/\s+/).filter(Boolean);
   const displayName = fullName || firstName;
@@ -61,9 +64,7 @@ export function AccountSettingsPage() {
           <div className="mt-6">
             <button
               type="button"
-              onClick={() => {
-                void logout().then(() => navigate('/login', { replace: true }));
-              }}
+              onClick={() => setLogoutConfirmOpen(true)}
               className="inline-flex items-center justify-center rounded border border-[#7a2a17] bg-[linear-gradient(180deg,_#7a2e1a_0%,_#5d2012_100%)] px-4 py-2 text-xs font-semibold uppercase tracking-[1px] text-[#ffe1d8] shadow-[0_8px_20px_rgba(255,90,40,0.16)] transition-all hover:-translate-y-[1px] hover:border-[#ff5a28] hover:bg-[linear-gradient(180deg,_#9a351c_0%,_#752714_100%)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff5a28] focus-visible:ring-offset-2 focus-visible:ring-offset-[#101010]"
             >
               Logout
@@ -71,6 +72,20 @@ export function AccountSettingsPage() {
           </div>
         </div>
       </section>
+
+      <ConfirmModal
+        open={logoutConfirmOpen}
+        title="Sign out?"
+        body="You will need to sign in again to use the workspace."
+        cancelLabel="Cancel"
+        confirmLabel="Logout"
+        tone="danger"
+        onCancel={() => setLogoutConfirmOpen(false)}
+        onConfirm={() => {
+          setLogoutConfirmOpen(false);
+          void logout().then(() => navigate('/login', { replace: true }));
+        }}
+      />
     </WorkspaceLayout>
   );
 }

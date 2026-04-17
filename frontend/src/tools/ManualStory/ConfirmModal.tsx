@@ -24,12 +24,14 @@ export function ConfirmModal({
   const danger = tone === 'danger';
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div
-        className={`w-full max-w-md rounded-[6px] border bg-[#111111] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.6)] ${
-          danger ? 'border-red-700/60' : 'border-[#3a2a25]'
-        }`}
-      >
+    <div className="fixed inset-0 z-[60]">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden />
+      <div className="relative flex min-h-full items-center justify-center p-4">
+        <div
+          className={`relative z-10 w-full max-w-md rounded-[6px] border bg-[#111111] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.6)] ${
+            danger ? 'border-red-700/60' : 'border-[#3a2a25]'
+          }`}
+        >
         <h3 className={`text-sm font-bold uppercase tracking-[.8px] ${danger ? 'text-red-300' : 'text-[#ff8c6a]'}`}>
           {title}
         </h3>
@@ -53,6 +55,7 @@ export function ConfirmModal({
           >
             {confirmLabel}
           </button>
+        </div>
         </div>
       </div>
     </div>
