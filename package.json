@@ -25,5 +25,8 @@
   "homepage": "https://github.com/harishankarlimbu/transparent-skelaton#readme",
   "devDependencies": {
     "concurrently": "^9.2.1"
+  },
+  "dependencies": {
+    "mongodb": "^7.1.1"
   }
 }

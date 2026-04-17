@@ -58,14 +58,14 @@ export function WorkspaceLayout({ children, headerActions }: WorkspaceLayoutProp
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0b0b] text-[#f0ede8] font-['DM_Sans']">
+    <div className="h-screen overflow-hidden bg-[#0b0b0b] text-[#f0ede8] font-['DM_Sans']">
       <link
         rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap"
       />
 
-      <div className="relative z-10 flex min-h-screen items-stretch">
-        <aside className="hidden min-h-screen shrink-0 flex-col border-r border-[#252525] bg-[#0f0f0f] lg:flex lg:w-[240px] xl:w-[260px] 2xl:w-[280px]">
+      <div className="relative z-10 flex h-full min-h-0 items-stretch">
+        <aside className="hidden h-full shrink-0 flex-col border-r border-[#252525] bg-[#0f0f0f] lg:flex lg:w-[240px] xl:w-[260px] 2xl:w-[280px]">
           <div className="border-b border-[#252525] px-5 py-5">
             <div className="flex items-center gap-2.5">
               <p className="font-['Bebas_Neue'] text-[24px] tracking-[1.5px]">
@@ -77,7 +77,7 @@ export function WorkspaceLayout({ children, headerActions }: WorkspaceLayoutProp
             </div>
           </div>
 
-          <div className="flex-1 space-y-5 overflow-y-auto px-4 py-5">
+          <div className="flex-1 space-y-5 overflow-hidden px-4 py-5">
             <NavSection title="Tools" items={toolsNavItems} currentPath={currentPath} onNavigate={navigate} />
 
             <div className="mx-0.5 h-px bg-[#252525]" />
@@ -88,7 +88,7 @@ export function WorkspaceLayout({ children, headerActions }: WorkspaceLayoutProp
           </div>
         </aside>
 
-        <main className="flex min-w-0 flex-1 flex-col">
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <header className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[#252525] px-4 py-2 sm:px-6 lg:px-8">
             <div className="inline-flex items-center gap-3">
               <p className="font-['Bebas_Neue'] text-[18px] tracking-[2px] text-[#888888]">
@@ -122,7 +122,7 @@ export function WorkspaceLayout({ children, headerActions }: WorkspaceLayoutProp
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-6 sm:py-8 lg:px-8 lg:py-9">{children}</div>
+          <div className="flex-1 min-h-0 overflow-hidden px-3 py-4 sm:px-6 sm:py-8 lg:px-8 lg:py-9">{children}</div>
         </main>
       </div>
     </div>

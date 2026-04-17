@@ -1,6 +1,35 @@
 import { Router } from 'express';
 import { generateManualStoryPrompts } from '../services/manualStory.service.js';
 const router = Router();
+function normalizeManualStoryScenes(raw) {
+    if (!Array.isArray(raw) || raw.length === 0)
+        return null;
+    if (raw.every((item) => typeof item === 'string')) {
+        const out = [];
+        const strings = raw;
+        for (let i = 0; i < strings.length; i += 1) {
+            const text = strings[i].trim();
+            if (!text)
+                continue;
+            out.push({ sceneIndex: i + 1, text });
+        }
+        return out.length > 0 ? out : null;
+    }
+    if (raw.every((item) => item && typeof item === 'object' && !Array.isArray(item))) {
+        const out = [];
+        for (const item of raw) {
+            const o = item;
+            const sceneIndex = Number(o.sceneIndex);
+            const text = typeof o.text === 'string' ? o.text.trim() : '';
+            if (!Number.isFinite(sceneIndex) || sceneIndex < 1 || !Number.isInteger(sceneIndex) || !text) {
+                return null;
+            }
+            out.push({ sceneIndex, text });
+        }
+        return out.length > 0 ? out : null;
+    }
+    return null;
+}
 // POST /api/manual-story/generate - Generate text image prompts for user-defined scenes
 router.post('/generate', async (req, res) => {
     const abortController = new AbortController();
@@ -24,25 +53,27 @@ router.post('/generate', async (req, res) => {
             res.status(400).json({ error: 'characters must be an object like { "c1": "detail", ... }' });
             return;
         }
-        if (!scenes || !Array.isArray(scenes) || scenes.length === 0) {
-            res.status(400).json({ error: 'scenes must be a non-empty string array' });
+        const scenesNormalized = normalizeManualStoryScenes(scenes);
+        if (!scenesNormalized) {
+            res.status(400).json({
+                error: 'scenes must be a non-empty array of strings, or objects { sceneIndex: number (>=1), text: string }',
+            });
             return;
         }
-        if (scenes.length > 5) {
+        if (scenesNormalized.length > 5) {
             res.status(400).json({ error: 'Maximum scenes is 5 for now.' });
+            return;
+        }
+        const sceneIndices = scenesNormalized.map((s) => s.sceneIndex);
+        if (new Set(sceneIndices).size !== sceneIndices.length) {
+            res.status(400).json({ error: 'Duplicate sceneIndex values are not allowed.' });
             return;
         }
         if (style !== 'cinematic-35mm' && style !== 'photorealistic') {
             res.status(400).json({ error: 'style must be either "cinematic-35mm" or "photorealistic"' });
             return;
         }
-        const scenesClean = scenes
-            .map((s) => (typeof s === 'string' ? s.trim() : ''))
-            .filter((s) => s.length > 0);
-        if (scenesClean.length === 0) {
-            res.status(400).json({ error: 'scenes must contain at least one non-empty string' });
-            return;
-        }
+        const scenesClean = [...scenesNormalized].sort((a, b) => a.sceneIndex - b.sceneIndex);
         const charactersObj = characters;
         const allowedKeys = new Set(['c1', 'c2', 'c3', 'c4', 'c5']);
         const charactersClean = {};

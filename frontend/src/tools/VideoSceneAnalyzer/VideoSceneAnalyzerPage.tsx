@@ -1,5 +1,10 @@
-import { WorkspacePlaceholderPage } from '../../workspace/WorkspacePlaceholderPage';
+import App from './src/App';
+import { WorkspaceLayout } from '../../workspace/WorkspaceLayout';
 
 export function VideoSceneAnalyzerPage() {
-  return <WorkspacePlaceholderPage title="Video Scene Analyzer" message="Video Scene Analyzer page coming soon." />;
+  return (
+    <WorkspaceLayout>
+      <App />
+    </WorkspaceLayout>
+  );
 }

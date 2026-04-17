@@ -70,7 +70,7 @@ ${sceneLines.map((line, idx) => `Scene id ${startIndex + idx + 1}: ${line}`).joi
 Return a JSON array of exactly ${sceneLines.length} objects, ids ${startIndex + 1} through ${startIndex + sceneLines.length}.`;
 };
 export const brollGeneratorConfig = {
-    model: 'gemini-2.5-flash',
+    model: 'gemini-2.5-flash-lite',
     temperature: 0.3,
     batchSize: 5,
     batchDelayMs: 1000,

@@ -9,14 +9,15 @@ function getManualStoryGeminiKey() {
     return key;
 }
 export async function generateManualStoryPrompts(args) {
-    const { characters, scenes, style, signal } = args;
+    const { characters, style, signal } = args;
+    const orderedScenes = [...args.scenes].sort((a, b) => a.sceneIndex - b.sceneIndex);
     if (signal?.aborted) {
         const err = new Error('Cancelled');
         err.name = 'AbortError';
         throw err;
     }
     const geminiKey = getManualStoryGeminiKey();
-    const modelName = process.env.MANUAL_STORY_GEMINI_MODEL?.trim() || 'gemini-2.5-flash';
+    const modelName = process.env.MANUAL_STORY_GEMINI_MODEL?.trim() || 'gemini-2.5-flash-lite';
     const temperature = process.env.MANUAL_STORY_TEMPERATURE ? Number(process.env.MANUAL_STORY_TEMPERATURE) : 0.7;
     const genAI = new GoogleGenerativeAI(geminiKey);
     const model = genAI.getGenerativeModel({
@@ -38,7 +39,7 @@ export async function generateManualStoryPrompts(args) {
         try {
             const result = await model.generateContent([
                 { text: getManualStorySystemPrompt() },
-                { text: `${getManualStoryUserPrompt({ characters, scenes, style })}${retryInstruction}` },
+                { text: `${getManualStoryUserPrompt({ characters, scenes: orderedScenes, style })}${retryInstruction}` },
             ]);
             if (signal?.aborted) {
                 const err = new Error('Cancelled');
@@ -86,11 +87,18 @@ export async function generateManualStoryPrompts(args) {
             promptsByScene.push({ sceneIndex: item.sceneIndex, imagePrompt: candidatePrompt });
         }
     }
-    if (promptsByScene.length !== scenes.length) {
-        throw new Error(`Manual story generation returned ${promptsByScene.length} prompts, expected ${scenes.length}.`);
+    if (promptsByScene.length !== orderedScenes.length) {
+        throw new Error(`Manual story generation returned ${promptsByScene.length} prompts, expected ${orderedScenes.length}.`);
     }
-    // Ensure stable ordering by sceneIndex.
+    // Ensure stable ordering by sceneIndex and match user's scene numbers (not 1..n by position).
     const normalized = [...promptsByScene].sort((a, b) => a.sceneIndex - b.sceneIndex);
+    for (let i = 0; i < orderedScenes.length; i += 1) {
+        const expected = orderedScenes[i].sceneIndex;
+        const got = normalized[i]?.sceneIndex;
+        if (got !== expected) {
+            throw new Error(`Manual story sceneIndex mismatch at position ${i + 1}: expected ${expected}, model returned ${got ?? 'missing'}.`);
+        }
+    }
     const promptsPlain = normalized
         .map((p) => JSON.stringify({
         sceneIndex: p.sceneIndex,

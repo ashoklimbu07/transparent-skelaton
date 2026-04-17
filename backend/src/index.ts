@@ -7,9 +7,11 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { brollRoutes } from './routes/broll.routes.js';
 import { manualStoryRoutes } from './routes/manualStory.routes.js';
+import { videoSceneAnalyzerRoutes } from './routes/videoSceneAnalyzer.routes.js';
 import { renderHealthStatusPage } from './components/healthStatusPage.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { requireAuth } from './middleware/requireAuth.js';
+import { connectDB } from './config/db.js';
 
 function normalizeOrigin(origin: string): string {
     return origin.trim().replace(/\/+$/, '').toLowerCase();
@@ -94,7 +96,8 @@ app.use(
     }),
 );
 
-app.use(express.json({ limit: '1mb' }));
+// Video scene analyzer sends base64 video payloads that can exceed 1MB.
+app.use(express.json({ limit: '25mb' }));
 app.use(cookieParser());
 
 // Log all incoming requests for debugging
@@ -108,6 +111,7 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api/broll', requireAuth, brollRoutes);
 app.use('/api/manual-story', requireAuth, manualStoryRoutes);
+app.use('/api/video-scene-analyzer', requireAuth, videoSceneAnalyzerRoutes);
 app.use('/api/auth', authRoutes);
 
 app.get('/api/health', (req, res) => {
@@ -148,33 +152,56 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
     res.status(500).json({ error: 'Internal Server Error', details: err.message });
 });
 
-app.listen(port, () => {
-    const brollKeys = getBrollApiKeys();
-    const analyzerKey = process.env.ANALYZER_GEMINI_KEY?.trim() || '';
-    const manualStoryKey = process.env.GEMINI_API_KEY_MANUALSTORY?.trim() || '';
-    console.log('------------------------------------------------');
-    console.log(`🚀 BACKEND SERVER RUNNING`);
-    console.log(`📡 URL: http://localhost:${port}`);
-    console.log(`🔑 GEMINI API KEY (B-Roll): ${brollKeys.length > 0 ? `✅ CONFIGURED (${brollKeys.length} keys)` : '❌ MISSING'}`);
-    console.log(
-        `📝 MANUAL STORY KEY: ${manualStoryKey ? `✅ CONFIGURED (...${manualStoryKey.slice(-4)})` : '❌ MISSING (GEMINI_API_KEY_MANUALSTORY)'}`
-    );
-    console.log(
-        `🧠 ANALYZER KEY: ${analyzerKey ? `✅ CONFIGURED (...${analyzerKey.slice(-4)})` : '❌ MISSING (ANALYZER_GEMINI_KEY)'}`
-    );
-    
-    // Warning if any key is missing
-    if (brollKeys.length === 0) {
-        console.log('⚠️  WARNING: Some API keys are missing!');
-        console.log('   - No GEMINI_API_KEY_BROLL1..N keys found in .env');
+async function startServer() {
+    try {
+        await connectDB();
+        console.log('✅ MongoDB connected');
+    } catch (error) {
+        console.error('❌ MongoDB connection failed:', error instanceof Error ? error.message : error);
+        process.exit(1);
     }
-    if (!analyzerKey) {
-        console.log('⚠️  WARNING: ANALYZER_GEMINI_KEY is missing.');
-    }
-    if (!manualStoryKey) {
-        console.log('⚠️  WARNING: GEMINI_API_KEY_MANUALSTORY is missing.');
-    }
-    
-    console.log(`🏥 HEALTH CHECK: http://localhost:${port}/api/health`);
-    console.log('------------------------------------------------');
-});
+
+    app.listen(port, () => {
+        const brollKeys = getBrollApiKeys();
+        const analyzerKey = process.env.ANALYZER_GEMINI_KEY?.trim() || '';
+        const manualStoryKey = process.env.GEMINI_API_KEY_MANUALSTORY?.trim() || '';
+        const videoSceneAnalyzerKey = process.env.GEMINI_API_KEY_VIDEO_SCENE_ANALYZER?.trim() || '';
+        console.log('------------------------------------------------');
+        console.log(`🚀 BACKEND SERVER RUNNING`);
+        console.log(`📡 URL: http://localhost:${port}`);
+        console.log(`🔑 GEMINI API KEY (B-Roll): ${brollKeys.length > 0 ? `✅ CONFIGURED (${brollKeys.length} keys)` : '❌ MISSING'}`);
+        console.log(
+            `📝 MANUAL STORY KEY: ${manualStoryKey ? `✅ CONFIGURED (...${manualStoryKey.slice(-4)})` : '❌ MISSING (GEMINI_API_KEY_MANUALSTORY)'}`
+        );
+        console.log(
+            `🧠 ANALYZER KEY: ${analyzerKey ? `✅ CONFIGURED (...${analyzerKey.slice(-4)})` : '❌ MISSING (ANALYZER_GEMINI_KEY)'}`
+        );
+        console.log(
+            `🎞️ VIDEO SCENE ANALYZER KEY: ${
+                videoSceneAnalyzerKey
+                    ? `✅ CONFIGURED (...${videoSceneAnalyzerKey.slice(-4)})`
+                    : '❌ MISSING (GEMINI_API_KEY_VIDEO_SCENE_ANALYZER)'
+            }`
+        );
+        
+        // Warning if any key is missing
+        if (brollKeys.length === 0) {
+            console.log('⚠️  WARNING: Some API keys are missing!');
+            console.log('   - No GEMINI_API_KEY_BROLL1..N keys found in .env');
+        }
+        if (!analyzerKey) {
+            console.log('⚠️  WARNING: ANALYZER_GEMINI_KEY is missing.');
+        }
+        if (!manualStoryKey) {
+            console.log('⚠️  WARNING: GEMINI_API_KEY_MANUALSTORY is missing.');
+        }
+        if (!videoSceneAnalyzerKey) {
+            console.log('⚠️  WARNING: GEMINI_API_KEY_VIDEO_SCENE_ANALYZER is missing.');
+        }
+        
+        console.log(`🏥 HEALTH CHECK: http://localhost:${port}/api/health`);
+        console.log('------------------------------------------------');
+    });
+}
+
+void startServer();
