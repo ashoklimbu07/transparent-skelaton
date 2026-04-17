@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ASPECT_RATIO, type AspectRatio, type Scene, type Session, VISUAL_STYLES } from '../types';
 import {
-  analyzeScript,
   analyzeVideo,
   generateImageForScene,
   generateSingleVisualPrompt,
@@ -33,8 +32,6 @@ const fileToBase64 = (file: File): Promise<string> => {
 };
 
 export const useDirectorState = () => {
-  const [activeTab, setActiveTab] = useState<'script' | 'video'>('script');
-  const [script, setScript] = useState('');
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [scenes, setScenes] = useState<Scene[]>([]);
@@ -90,12 +87,7 @@ export const useDirectorState = () => {
   };
 
   const handleAnalyze = async () => {
-    if (activeTab === 'script') {
-      if (!script.trim()) {
-        console.warn('[B-Roll Director] Analyze skipped: empty script');
-        return;
-      }
-    } else if (!videoFile) {
+    if (!videoFile) {
       console.warn('[B-Roll Director] Analyze skipped: no video file');
       return;
     }
@@ -104,26 +96,18 @@ export const useDirectorState = () => {
     setHasAnalyzed(false);
 
     try {
-      let generatedScenes: Scene[] = [];
-      let sessionName = '';
-
-      if (activeTab === 'script') {
-        generatedScenes = await analyzeScript(script);
-        sessionName = `Script: ${script.substring(0, 30)}${script.length > 30 ? '...' : ''}`;
-      } else if (videoFile) {
-        console.log('[VideoSceneAnalyzer] Processing video analyze', {
-          fileName: videoFile.name,
-          fileType: videoFile.type,
-          fileSizeBytes: videoFile.size,
-        });
-        const base64Video = await fileToBase64(videoFile);
-        generatedScenes = await analyzeVideo(base64Video, videoFile.type);
-        sessionName = `Video: ${videoFile.name}`;
-        console.log('[VideoSceneAnalyzer] Analyze video completed', {
-          fileName: videoFile.name,
-          scenes: generatedScenes.length,
-        });
-      }
+      console.log('[VideoSceneAnalyzer] Processing video analyze', {
+        fileName: videoFile.name,
+        fileType: videoFile.type,
+        fileSizeBytes: videoFile.size,
+      });
+      const base64Video = await fileToBase64(videoFile);
+      const generatedScenes = await analyzeVideo(base64Video, videoFile.type);
+      const sessionName = `Video: ${videoFile.name}`;
+      console.log('[VideoSceneAnalyzer] Analyze video completed', {
+        fileName: videoFile.name,
+        scenes: generatedScenes.length,
+      });
 
       setScenes(generatedScenes);
       setHasAnalyzed(true);
@@ -131,7 +115,7 @@ export const useDirectorState = () => {
       saveHistory({
         id: Date.now().toString(),
         timestamp: Date.now(),
-        type: activeTab,
+        type: 'video',
         name: sessionName,
         scenes: generatedScenes
       });
@@ -147,7 +131,6 @@ export const useDirectorState = () => {
   const applyLoadSession = (session: Session) => {
     setScenes(session.scenes);
     setHasAnalyzed(true);
-    setActiveTab(session.type);
   };
 
   const applyDeleteSession = (sessionId: string) => {
@@ -332,7 +315,7 @@ export const useDirectorState = () => {
 
   const generatePromptsText = () => {
     return scenes.map((scene, index) => (
-      `SCENE ${index + 1}\n------------------\n${activeTab === 'script' ? 'SCRIPT SEGMENT' : 'VIDEO SEGMENT'}: "${scene.originalText}"\nVISUAL PROMPT: ${scene.visualPrompt}\nSTYLE: ${selectedStyle.name} (${selectedRatio})\n`
+      `SCENE ${index + 1}\n------------------\nVIDEO SEGMENT: "${scene.originalText}"\nVISUAL PROMPT: ${scene.visualPrompt}\nSTYLE: ${selectedStyle.name} (${selectedRatio})\n`
     )).join('\n\n');
   };
 
@@ -360,10 +343,6 @@ export const useDirectorState = () => {
   };
 
   return {
-    activeTab,
-    setActiveTab,
-    script,
-    setScript,
     videoFile,
     isAnalyzing,
     scenes,

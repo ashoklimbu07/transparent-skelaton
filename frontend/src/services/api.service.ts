@@ -285,4 +285,30 @@ export const apiService = {
     const data = await parseJsonResponse<{ items?: HistoryItem[] }>(response, 'History fetch');
     return Array.isArray(data.items) ? data.items : [];
   },
+
+  deleteGenerationHistory: async (historyId: string, signal?: AbortSignal): Promise<void> => {
+    const trimmedHistoryId = historyId.trim();
+    if (!trimmedHistoryId) {
+      throw new Error('History id is required.');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/history/${encodeURIComponent(trimmedHistoryId)}`, {
+      method: 'DELETE',
+      headers: {
+        ...getAuthHeaders(),
+      },
+      credentials: 'include',
+      signal,
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('History item was already removed.');
+      }
+      const error = await parseJsonResponse<{ error?: string; details?: string }>(response, 'History delete');
+      const details = typeof error.details === 'string' ? error.details : '';
+      const message = details ? `${error.error}: ${details}` : error.error || 'Failed to delete history item';
+      throw new Error(message);
+    }
+  },
 };

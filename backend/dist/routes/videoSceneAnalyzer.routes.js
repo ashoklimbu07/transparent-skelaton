@@ -16,44 +16,6 @@ function buildAnalyzerCombinedOutput(scenes, segmentLabel) {
     })
         .join('\n\n');
 }
-router.post('/analyze-script', async (req, res) => {
-    try {
-        const script = typeof req.body?.script === 'string' ? req.body.script.trim() : '';
-        if (!script) {
-            res.status(400).json({ error: 'script is required and must be a non-empty string' });
-            return;
-        }
-        const scenes = await videoSceneAnalyzerService.analyzeScript(script);
-        const payload = { scenes };
-        const combinedOutput = buildAnalyzerCombinedOutput(scenes, 'SCRIPT SEGMENT');
-        await persistGenerationHistory({
-            req,
-            sourceTool: 'video-scene-analyzer.analyze-script',
-            input: { script },
-            output: payload,
-            combinedOutput,
-            outputFormats: ['json', 'text'],
-            files: [
-                {
-                    name: 'analyzed-script-scenes.json',
-                    mimeType: 'application/json',
-                    content: JSON.stringify(scenes, null, 2),
-                },
-                {
-                    name: 'analyzed-script-scenes.txt',
-                    mimeType: 'text/plain',
-                    content: combinedOutput,
-                },
-            ],
-        });
-        res.json(payload);
-    }
-    catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        console.error('Video Scene Analyzer script analysis error:', message);
-        res.status(500).json({ error: 'Failed to analyze script', details: message });
-    }
-});
 router.post('/analyze-video', async (req, res) => {
     try {
         const videoBase64 = typeof req.body?.videoBase64 === 'string' ? req.body.videoBase64.trim() : '';

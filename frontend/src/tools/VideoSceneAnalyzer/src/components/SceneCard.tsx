@@ -20,9 +20,9 @@ const SceneCard: React.FC<SceneCardProps> = ({
   onRegenerateSpecs
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [isEditingScript, setIsEditingScript] = useState(false);
+  const [isEditingSegment, setIsEditingSegment] = useState(false);
   const [localPrompt, setLocalPrompt] = useState(scene.visualPrompt);
-  const [localScriptText, setLocalScriptText] = useState(scene.originalText);
+  const [localSegmentText, setLocalSegmentText] = useState(scene.originalText);
   const [isCopied, setIsCopied] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -55,11 +55,11 @@ const SceneCard: React.FC<SceneCardProps> = ({
   };
 
   const handleRegenerateSpecsClick = async () => {
-    if (!localScriptText.trim()) return;
+    if (!localSegmentText.trim()) return;
     setIsRegenerating(true);
     try {
-      await onRegenerateSpecs(scene.id, localScriptText);
-      setIsEditingScript(false);
+      await onRegenerateSpecs(scene.id, localSegmentText);
+      setIsEditingSegment(false);
     } catch (e) {
       console.error("Failed to regenerate specs", e);
     } finally {
@@ -79,31 +79,31 @@ const SceneCard: React.FC<SceneCardProps> = ({
           <div>
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-[0.8px]">Original Script Segment</h3>
-                {!isEditingScript && (
+                <h3 className="text-xs font-semibold text-[#8a8a8a] uppercase tracking-[0.8px]">Original Segment</h3>
+                {!isEditingSegment && (
                   <button
-                    onClick={() => setIsEditingScript(true)}
+                    onClick={() => setIsEditingSegment(true)}
                     className="text-[#6c6c6c] hover:text-[#ff7d58] transition-colors"
-                    title="Edit script segment"
+                    title="Edit segment"
                   >
                     <Edit3 className="w-3 h-3" />
                   </button>
                 )}
               </div>
 
-              {isEditingScript ? (
+              {isEditingSegment ? (
                 <div className="space-y-2">
                   <textarea
                     className="w-full bg-[#161616] border border-[#2f2f2f] rounded-md p-2 text-sm text-[#d7d7d7] focus:outline-none focus:ring-0 focus:border-[#ff5a2f]"
                     rows={3}
-                    value={localScriptText}
-                    onChange={(e) => setLocalScriptText(e.target.value)}
+                    value={localSegmentText}
+                    onChange={(e) => setLocalSegmentText(e.target.value)}
                   />
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={() => {
-                        setIsEditingScript(false);
-                        setLocalScriptText(scene.originalText);
+                        setIsEditingSegment(false);
+                        setLocalSegmentText(scene.originalText);
                       }}
                       className="text-xs px-2 py-1 hover:bg-[#242424] rounded text-[#8a8a8a]"
                       disabled={isRegenerating}

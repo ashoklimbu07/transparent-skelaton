@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, Eye, RefreshCw } from 'lucide-react';
+import { Download, Eye, Trash2 } from 'lucide-react';
 import { apiService, type HistoryItem } from '../../services/api.service';
+import { ConfirmModal } from '../../tools/ManualStory/ConfirmModal';
 import { WorkspaceLayout } from '../../workspace/WorkspaceLayout';
 
 const TOOL_LABELS: Record<string, string> = {
   'broll.generate': 'Generate B-roll',
   'manual-story.generate': 'Manual Story',
-  'video-scene-analyzer.analyze-script': 'Video Scene Analyzer (Script)',
   'video-scene-analyzer.analyze-video': 'Video Scene Analyzer (Video)',
   'video-scene-analyzer.regenerate-visual-prompt': 'Visual Prompt Regeneration',
   'video-scene-analyzer.generate-image': 'Image Generation',
@@ -197,8 +197,7 @@ function buildDownloadText(item: HistoryItem): string {
             const originalText = normalizePromptLine(row.originalText);
             const visualPrompt = normalizePromptLine(row.visualPrompt);
             const brollPrompt = normalizePromptLine(row.scene);
-            const segmentLabel =
-              item.sourceTool === 'video-scene-analyzer.analyze-video' ? 'VIDEO SEGMENT' : 'SCRIPT SEGMENT';
+            const segmentLabel = 'VIDEO SEGMENT';
             if (!originalText && !visualPrompt && !brollPrompt) return '';
 
             if (brollPrompt && !originalText && !visualPrompt) {
@@ -275,11 +274,48 @@ function matchesTimeFilter(item: HistoryItem, timeFilter: TimeFilter): boolean {
   return now - createdMs <= 7 * oneDay;
 }
 
+function HistoryListSkeleton() {
+  return (
+    <div className="space-y-2 animate-pulse">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div key={`history-skeleton-${index}`} className="border border-[#242424] bg-[#171717] p-3">
+          <div className="h-3 w-2/3 bg-[#242424]" />
+          <div className="mt-2 h-3 w-1/2 bg-[#212121]" />
+          <div className="mt-2 h-3 w-1/3 bg-[#1f1f1f]" />
+          <div className="mt-2 h-3 w-3/4 bg-[#1c1c1c]" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function HistoryDetailsSkeleton() {
+  return (
+    <div className="animate-pulse">
+      <div className="mb-4 border-b border-[#242424] pb-3">
+        <div className="h-3 w-1/3 bg-[#242424]" />
+        <div className="mt-2 h-3 w-1/2 bg-[#212121]" />
+        <div className="mt-2 h-3 w-1/4 bg-[#1f1f1f]" />
+      </div>
+      <div className="mb-3 h-3 w-20 bg-[#242424]" />
+      <div className="h-[52vh] border border-[#252525] bg-[#111111] p-3">
+        <div className="h-3 w-full bg-[#1d1d1d]" />
+        <div className="mt-2 h-3 w-11/12 bg-[#1d1d1d]" />
+        <div className="mt-2 h-3 w-10/12 bg-[#1d1d1d]" />
+        <div className="mt-2 h-3 w-full bg-[#1d1d1d]" />
+        <div className="mt-2 h-3 w-9/12 bg-[#1d1d1d]" />
+      </div>
+    </div>
+  );
+}
+
 export function HistoryPage() {
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+  const [pendingDeleteHistoryId, setPendingDeleteHistoryId] = useState<string | null>(null);
+  const [deletingHistoryId, setDeletingHistoryId] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [toolFilter, setToolFilter] = useState<string>('all');
 
@@ -335,24 +371,36 @@ export function HistoryPage() {
     void load();
   }, []);
 
+  const cancelDelete = () => {
+    setPendingDeleteHistoryId(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDeleteHistoryId || deletingHistoryId) return;
+
+    setDeletingHistoryId(pendingDeleteHistoryId);
+    setError(null);
+
+    try {
+      await apiService.deleteGenerationHistory(pendingDeleteHistoryId);
+      setItems((prev) => prev.filter((item) => item.historyId !== pendingDeleteHistoryId));
+      setSelectedHistoryId((prev) => (prev === pendingDeleteHistoryId ? null : prev));
+      setPendingDeleteHistoryId(null);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to delete history item.');
+    } finally {
+      setDeletingHistoryId(null);
+    }
+  };
+
   return (
     <WorkspaceLayout>
       <section className="h-full w-full overflow-y-auto border border-[#222222] bg-[#111111] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)] sm:p-6 md:p-8 lg:p-10">
-        <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="mb-5">
           <div>
             <h1 className="font-['Bebas_Neue'] text-[30px] tracking-[1px] text-[#f0ede8] sm:text-[36px]">History</h1>
             <p className="mt-1 text-sm text-[#8a8a8a]">View generated outputs from all tools with labels and download as TXT.</p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              void load();
-            }}
-            className="inline-flex items-center gap-2 border border-[#2c2c2c] bg-[#191919] px-3 py-2 text-xs text-[#d0d0d0] hover:border-[#e8380d]/60"
-          >
-            <RefreshCw size={14} />
-            Refresh
-          </button>
         </div>
 
         {error ? <p className="mb-4 border border-[#4a1f1f] bg-[#2a1414] px-3 py-2 text-sm text-[#ff8d8d]">{error}</p> : null}
@@ -389,15 +437,19 @@ export function HistoryPage() {
           </label>
 
           <div className="flex items-end">
-            <p className="text-xs text-[#9f9f9f]">
-              Showing {filteredItems.length} of {items.length}
-            </p>
+            {loading ? (
+              <div className="h-3 w-28 animate-pulse bg-[#242424]" />
+            ) : (
+              <p className="text-xs text-[#9f9f9f]">
+                Showing {filteredItems.length} of {items.length}
+              </p>
+            )}
           </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[360px_1fr]">
           <aside className="max-h-[68vh] overflow-y-auto border border-[#242424] bg-[#131313] p-3">
-            {loading ? <p className="text-sm text-[#8a8a8a]">Loading history...</p> : null}
+            {loading ? <HistoryListSkeleton /> : null}
             {!loading && items.length === 0 ? <p className="text-sm text-[#8a8a8a]">No history yet.</p> : null}
             {!loading && items.length > 0 && filteredItems.length === 0 ? (
               <p className="text-sm text-[#8a8a8a]">No history matches current filters.</p>
@@ -406,29 +458,46 @@ export function HistoryPage() {
               {filteredItems.map((item) => {
                 const isActive = selectedItem?.historyId === item.historyId;
                 const sceneCount = getSceneCount(item);
+                const isDeletingThisItem = deletingHistoryId === item.historyId;
                 return (
-                  <button
+                  <div
                     key={item.historyId}
-                    type="button"
-                    onClick={() => setSelectedHistoryId(item.historyId)}
-                    className={`w-full border px-3 py-3 text-left transition-colors ${
+                    className={`flex items-start gap-2 border p-2 transition-colors ${
                       isActive
                         ? 'border-[#e8380d]/70 bg-[#23150f]'
                         : 'border-[#242424] bg-[#171717] hover:border-[#e8380d]/35'
                     }`}
                   >
-                    <p className="text-[11px] uppercase tracking-[1.2px] text-[#ff9a7f]">{formatLabel(item.sourceTool)}</p>
-                    <p className="mt-1 text-xs text-[#a3a3a3]">{new Date(item.createdAt).toLocaleString()}</p>
-                    {sceneCount ? <p className="mt-1 text-xs text-[#c4c4c4]">Scenes: {sceneCount}</p> : null}
-                    <p className="mt-1 truncate text-xs text-[#747474]">{item.historyId}</p>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedHistoryId(item.historyId)}
+                      className="min-w-0 flex-1 px-1 py-1 text-left"
+                    >
+                      <p className="text-[11px] uppercase tracking-[1.2px] text-[#ff9a7f]">{formatLabel(item.sourceTool)}</p>
+                      <p className="mt-1 text-xs text-[#a3a3a3]">{new Date(item.createdAt).toLocaleString()}</p>
+                      {sceneCount ? <p className="mt-1 text-xs text-[#c4c4c4]">Scenes: {sceneCount}</p> : null}
+                      <p className="mt-1 truncate text-xs text-[#747474]">{item.historyId}</p>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isDeletingThisItem}
+                      onClick={() => setPendingDeleteHistoryId(item.historyId)}
+                      aria-label="Delete history item"
+                      title="Delete history"
+                      className="inline-flex h-8 w-8 shrink-0 items-center justify-center border border-[#432020] bg-[#271717] text-[#ff8d8d] transition-colors hover:border-[#ff6b6b] hover:text-[#ffc0c0] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 );
               })}
             </div>
           </aside>
 
           <article className="min-h-[300px] border border-[#242424] bg-[#131313] p-4">
-            {!selectedItem ? (
+            {loading ? (
+              <HistoryDetailsSkeleton />
+            ) : !selectedItem ? (
               <p className="text-sm text-[#8a8a8a]">Select a history item to view details.</p>
             ) : (
               <>
@@ -462,6 +531,19 @@ export function HistoryPage() {
           </article>
         </div>
       </section>
+
+      <ConfirmModal
+        open={Boolean(pendingDeleteHistoryId)}
+        title="Delete this output?"
+        body="This history output will be permanently removed from your account and cannot be undone."
+        cancelLabel="Cancel"
+        confirmLabel={deletingHistoryId ? 'Deleting...' : 'Delete'}
+        tone="danger"
+        onCancel={cancelDelete}
+        onConfirm={() => {
+          void confirmDelete();
+        }}
+      />
     </WorkspaceLayout>
   );
 }

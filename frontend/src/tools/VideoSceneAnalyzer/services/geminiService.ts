@@ -36,11 +36,6 @@ async function postJson<TResponse>(path: string, body: Record<string, unknown>):
   return payload as TResponse;
 }
 
-export const analyzeScript = async (script: string): Promise<Scene[]> => {
-  const response = await postJson<{ scenes: Scene[] }>('/analyze-script', { script });
-  return response.scenes;
-};
-
 export const analyzeVideo = async (videoBase64: string, mimeType: string): Promise<Scene[]> => {
   const response = await postJson<{ scenes: Scene[] }>('/analyze-video', { videoBase64, mimeType });
   return response.scenes;

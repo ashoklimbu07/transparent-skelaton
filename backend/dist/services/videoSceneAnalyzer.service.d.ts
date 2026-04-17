@@ -1,10 +1,4 @@
 export declare const videoSceneAnalyzerService: {
-    analyzeScript(script: string): Promise<{
-        id: string;
-        originalText: string;
-        visualPrompt: string;
-        status: "pending";
-    }[]>;
     analyzeVideo(videoBase64: string, mimeType: string): Promise<{
         id: string;
         originalText: string;

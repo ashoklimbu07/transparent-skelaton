@@ -11,10 +11,6 @@ import { ConfirmModal } from '../../ManualStory/ConfirmModal';
 
 const App: React.FC = () => {
   const {
-    activeTab,
-    setActiveTab,
-    script,
-    setScript,
     videoFile,
     isAnalyzing,
     scenes,
@@ -55,10 +51,6 @@ const App: React.FC = () => {
       <main className="max-w-7xl mx-auto px-4 py-8 w-full flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-8 overflow-hidden">
         <aside className="lg:col-span-4 min-h-0 space-y-6 overflow-y-auto pr-1 custom-scrollbar">
           <InputPanel
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            script={script}
-            setScript={setScript}
             videoFile={videoFile}
             fileInputRef={fileInputRef}
             onFileChange={handleFileChange}
@@ -109,9 +101,7 @@ const App: React.FC = () => {
                 <Film className="w-12 h-12 mx-auto mb-4 opacity-20" />
                 <p className="text-lg font-medium text-gray-400">Ready to Visualize</p>
                 <p className="text-sm mt-2 max-w-md mx-auto">
-                  {activeTab === 'script'
-                    ? 'Paste your script on the left and click "Analyze Scenes".'
-                    : 'Upload a video on the left to reconstruct its visual scenes.'}
+                  Upload a video on the left to reconstruct its visual scenes.
                 </p>
               </div>
             ) : (

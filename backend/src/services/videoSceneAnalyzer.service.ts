@@ -154,21 +154,6 @@ const VISUAL_PROMPT_SPEC_SCHEMA = {
   required: ['scene', 'style', 'shot', 'text_rules', 'color_palette', 'visual_rules', 'metadata'],
 };
 
-const SCRIPT_ANALYSIS_INSTRUCTIONS = `You are a professional video editor and B-roll director.
-Analyze the following video script, which may be up to 10 minutes long.
-
-Your specific task is to provide a granular, line-by-line breakdown of visual scenes.
-
-Guidelines:
-1. STRICT LINE-BY-LINE ANALYSIS: Do not group large paragraphs. Create a new visual scene for almost every sentence or distinct clause to ensure there is enough B-roll for the entire duration.
-2. For a 10-minute script, generate as many scenes as necessary to cover the audio continuously (this could be 50-100+ scenes).
-3. For each scene, provide:
-   - "originalText": The exact sentence or phrase from the script.
-   - "visualPrompt": A structured visual specification: scene (what we see), style (look/mood), shot (composition, motion, lens, resolution, frame rate), and optional lighting/timeline/color palette.
-   - Include "text_rules" with fixed constraints: emoji_policy="no emojis", logo_policy="no logos", text_policy="no on-screen text", plus a concrete contrast value.
-   - Keep "visual_rules" and include prohibited_elements.
-   - Keep "metadata" with useful "tags" for the scene. Be concrete so an image/video model can recreate the shot.`;
-
 const VIDEO_ANALYSIS_INSTRUCTIONS = `You are a professional video director.
 Analyze this video. We want to recreate this video shot-for-shot using AI generated stock footage (B-roll).
 
@@ -323,23 +308,6 @@ const parseVisualPromptToText = (prompt: string, styleModifier: string): string 
 };
 
 export const videoSceneAnalyzerService = {
-  async analyzeScript(script: string) {
-    const { key } = getVideoAnalyzerApiKeyConfig();
-    const client = new GoogleGenAI({ apiKey: key });
-    const response = await client.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: `${SCRIPT_ANALYSIS_INSTRUCTIONS}\n\nScript:\n${script}`,
-      config: {
-        ...GEMINI_GENERATION_CONFIG,
-        responseMimeType: 'application/json',
-        responseSchema: RESPONSE_SCHEMA,
-      },
-    });
-
-    const json = JSON.parse(response.text || '{"scenes": []}') as ScriptAnalysisResponse;
-    return mapResponseToScenes(json);
-  },
-
   async analyzeVideo(videoBase64: string, mimeType: string) {
     const { key, keyName } = getVideoAnalyzerApiKeyConfig();
     const client = new GoogleGenAI({ apiKey: key });

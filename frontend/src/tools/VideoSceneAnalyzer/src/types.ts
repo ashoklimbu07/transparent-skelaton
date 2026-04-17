@@ -35,7 +35,7 @@ export type AspectRatio = (typeof ASPECT_RATIO)[keyof typeof ASPECT_RATIO];
 export interface Session {
   id: string;
   timestamp: number;
-  type: 'script' | 'video';
+  type: 'video';
   name: string;
   scenes: Scene[];
 }

@@ -51,4 +51,40 @@ router.get('/', async (req: Request, res: Response) => {
     }
 });
 
+router.delete('/:historyId', async (req: Request, res: Response) => {
+    try {
+        const sessionUser = readSessionUser(req);
+        if (!sessionUser) {
+            res.status(401).json({ error: 'Unauthorized' });
+            return;
+        }
+
+        const historyId = String(req.params.historyId || '').trim();
+        if (!historyId) {
+            res.status(400).json({ error: 'historyId is required' });
+            return;
+        }
+
+        const userFilter = isValidObjectId(sessionUser.id)
+            ? { userId: sessionUser.id }
+            : { userEmail: sessionUser.email.toLowerCase() };
+
+        const result = await GenerationHistoryModel.deleteOne({
+            ...userFilter,
+            historyId,
+        });
+
+        if (result.deletedCount === 0) {
+            res.status(404).json({ error: 'History item not found' });
+            return;
+        }
+
+        res.status(204).send();
+    } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        console.error('History delete error:', message);
+        res.status(500).json({ error: 'Failed to delete history item', details: message });
+    }
+});
+
 export { router as historyRoutes };
