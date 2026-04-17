@@ -1,10 +1,27 @@
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import { Router } from 'express';
 import { readSessionUser, SESSION_COOKIE_NAME, signSession } from '../services/auth/session.js';
+import { UserModel } from '../models/user.model.js';
 const router = Router();
 const GOOGLE_STATE_COOKIE_NAME = 'google_oauth_state';
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const GOOGLE_STATE_MAX_AGE_MS = 10 * 60 * 1000;
+const MIN_PASSWORD_LENGTH = 8;
+function readString(value) {
+    return typeof value === 'string' ? value.trim() : '';
+}
+function parseSignupPayload(body) {
+    const input = (body || {});
+    const firstName = readString(input.firstName);
+    const lastName = readString(input.lastName);
+    const composedName = [firstName, lastName].filter(Boolean).join(' ').trim();
+    return {
+        name: readString(input.name) || composedName,
+        email: readString(input.email).toLowerCase(),
+        password: readString(input.password),
+    };
+}
 function getFrontendUrl() {
     const raw = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
     try {
@@ -74,6 +91,52 @@ function getCookieOptions(req) {
         path: '/',
     };
 }
+router.post('/signup', async (req, res) => {
+    try {
+        const { name, email, password } = parseSignupPayload(req.body);
+        if (!name || !email || !password) {
+            res.status(400).json({ error: 'name, email and password are required' });
+            return;
+        }
+        if (password.length < MIN_PASSWORD_LENGTH) {
+            res.status(400).json({ error: `password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+            return;
+        }
+        const existingUser = await UserModel.findOne({ email }).lean();
+        if (existingUser) {
+            res.status(409).json({ error: 'Email already registered' });
+            return;
+        }
+        const passwordHash = await bcrypt.hash(password, 12);
+        const createdUser = await UserModel.create({
+            name,
+            email,
+            passwordHash,
+            provider: 'local',
+            lastLoginAt: new Date(),
+        });
+        const sessionUser = {
+            id: createdUser._id.toString(),
+            email: createdUser.email,
+            name: createdUser.name,
+            ...(createdUser.picture ? { picture: createdUser.picture } : {}),
+        };
+        const sessionToken = signSession(sessionUser);
+        res.cookie(SESSION_COOKIE_NAME, sessionToken, {
+            ...getCookieOptions(req),
+            maxAge: SESSION_MAX_AGE_MS,
+        });
+        res.status(201).json({
+            message: 'Signup successful',
+            token: sessionToken,
+            user: sessionUser,
+        });
+    }
+    catch (error) {
+        console.error('Signup error:', error);
+        res.status(500).json({ error: 'Failed to sign up' });
+    }
+});
 router.get('/google/start', (req, res) => {
     try {
         const { clientId } = getGoogleCredentials();

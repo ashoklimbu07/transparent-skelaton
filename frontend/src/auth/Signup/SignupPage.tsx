@@ -1,113 +1,43 @@
-import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { getGoogleStartUrl } from '../authApi';
 
-type SignupFormValues = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  agreedToTerms: boolean;
-};
-
-type SignupFormErrors = Partial<Record<keyof SignupFormValues, string>>;
-
-const NAME_MIN_LENGTH = 3;
-const NAME_MAX_LENGTH = 10;
-const PASSWORD_MIN_LENGTH = 8;
-
-const INITIAL_FORM_VALUES: SignupFormValues = {
-  firstName: '',
-  lastName: '',
-  email: '',
-  password: '',
-  confirmPassword: '',
-  agreedToTerms: false,
-};
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function trimFormValues(values: SignupFormValues): SignupFormValues {
-  return {
-    ...values,
-    firstName: values.firstName.trim(),
-    lastName: values.lastName.trim(),
-    email: values.email.trim(),
-  };
-}
-
-function validateSignupForm(values: SignupFormValues): SignupFormErrors {
-  const errors: SignupFormErrors = {};
-
-  if (values.firstName.length < NAME_MIN_LENGTH || values.firstName.length > NAME_MAX_LENGTH) {
-    errors.firstName = `First name must be ${NAME_MIN_LENGTH}-${NAME_MAX_LENGTH} characters.`;
-  }
-
-  if (values.lastName.length < NAME_MIN_LENGTH || values.lastName.length > NAME_MAX_LENGTH) {
-    errors.lastName = `Last name must be ${NAME_MIN_LENGTH}-${NAME_MAX_LENGTH} characters.`;
-  }
-
-  if (!EMAIL_REGEX.test(values.email)) {
-    errors.email = 'Please enter a valid email address.';
-  }
-
-  if (values.password.length < PASSWORD_MIN_LENGTH) {
-    errors.password = `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`;
-  }
-
-  if (values.confirmPassword !== values.password) {
-    errors.confirmPassword = 'Passwords do not match.';
-  }
-
-  if (!values.agreedToTerms) {
-    errors.agreedToTerms = 'You must agree to Terms and Privacy Policy.';
-  }
-
-  return errors;
-}
-
 export function SignupPage() {
-  const [formValues, setFormValues] = useState<SignupFormValues>(INITIAL_FORM_VALUES);
-  const [formErrors, setFormErrors] = useState<SignupFormErrors>({});
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const trimmedValues = trimFormValues(formValues);
-    setFormValues(trimmedValues);
-
-    const errors = validateSignupForm(trimmedValues);
-    setFormErrors(errors);
-
-    if (Object.keys(errors).length > 0) {
-      return;
-    }
-
-    // UI-only flow for now; API integration will be added later.
-  };
-
-  const inputBaseClass =
-    'w-full h-11 bg-[#080808] border px-3 text-sm outline-none focus:border-[#ff3c00]';
-
-  const getInputClassName = (hasError: boolean) =>
-    `${inputBaseClass} ${hasError ? 'border-[#ff5a28]' : 'border-[#222222]'}`;
-
   return (
-    <main className="min-h-screen bg-[#080808] text-[#f0ede8] font-['DM_Sans'] flex items-center justify-center px-5 py-10">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_#181818_0%,_#080808_45%,_#050505_100%)] text-[#f0ede8] font-['DM_Sans'] flex items-center justify-center px-5 py-10">
+      <style>{`
+        @keyframes authFloat {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+        }
+        @keyframes authGlow {
+          0%, 100% { opacity: 0.35; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(1.05); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .auth-float,
+          .auth-glow {
+            animation: none !important;
+          }
+        }
+      `}</style>
       <link
         rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap"
       />
 
-      <section className="w-full max-w-lg border border-[#222222] bg-[#111111] p-6 sm:p-7 md:p-8">
+      <div className="relative w-full max-w-md">
+        <div className="auth-glow pointer-events-none absolute -inset-6 -z-10 rounded-[30px] bg-[radial-gradient(circle,_rgba(255,60,0,0.3)_0%,_rgba(255,60,0,0)_72%)] [animation:authGlow_5.5s_ease-in-out_infinite]" />
+        <section className="auth-float relative w-full border border-[#2a2a2a] bg-[linear-gradient(180deg,_#121212_0%,_#0d0d0d_100%)] p-6 shadow-[0_18px_50px_rgba(0,0,0,0.55)] [animation:authFloat_6s_ease-in-out_infinite] sm:p-7 md:p-8">
         <Link to="/" className="inline-block font-['Bebas_Neue'] text-[30px] tracking-[2px] mb-6">
           Broll<span className="text-[#ff3c00]">AI</span>
         </Link>
 
         <div className="mb-1 flex items-start justify-between gap-3">
           <p className="text-[11px] tracking-[3px] uppercase text-[#ff3c00]">Create Account</p>
-          <Link to="/login" className="text-[11px] uppercase tracking-[1.5px] text-[#888888] hover:text-[#f0ede8]">
+          <Link
+            to="/login"
+            className="text-[11px] uppercase tracking-[1.5px] text-[#8c8c8c] transition-colors hover:text-[#f0ede8]"
+          >
             Have account?
           </Link>
         </div>
@@ -115,162 +45,41 @@ export function SignupPage() {
 
         <a
           href={getGoogleStartUrl()}
-          className="mb-4 inline-flex h-11 w-full items-center justify-center border border-[#dcdcdc] bg-white text-sm font-medium uppercase tracking-[.5px] text-black transition-colors hover:bg-[#ededed]"
+          className="mb-4 inline-flex h-12 w-full items-center justify-center gap-3 border border-[#d8d8d8] bg-white px-4 text-sm font-semibold uppercase tracking-[.6px] text-black transition-all hover:-translate-y-[1px] hover:bg-[#f2f2f2] hover:shadow-[0_8px_22px_rgba(255,255,255,0.18)]"
         >
+          <svg aria-hidden="true" viewBox="0 0 18 18" className="h-[18px] w-[18px] shrink-0">
+            <path
+              fill="#EA4335"
+              d="M17.64 9.2045c0-.6382-.0573-1.2518-.1636-1.8409H9v3.4818h4.8436c-.2086 1.125-.8427 2.0782-1.7968 2.7155v2.2582h2.9086c1.7018-1.5664 2.6846-3.875 2.6846-6.6146Z"
+            />
+            <path
+              fill="#4285F4"
+              d="M9 18c2.43 0 4.4673-.8059 5.9564-2.1805l-2.9086-2.2582c-.8059.54-1.8368.8591-3.0477.8591-2.3441 0-4.3282-1.5832-5.0373-3.7105H.9573v2.3318A8.9999 8.9999 0 0 0 9 18Z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M3.9627 10.7095A5.411 5.411 0 0 1 3.6818 9c0-.5932.1018-1.1682.2809-1.7095V4.9586H.9573A8.9998 8.9998 0 0 0 0 9c0 1.4523.3482 2.8277.9573 4.0414l3.0054-2.3319Z"
+            />
+            <path
+              fill="#34A853"
+              d="M9 3.5795c1.3214 0 2.5077.4541 3.4418 1.3459l2.5814-2.5814C13.4636.8918 11.43 0 9 0A8.9999 8.9999 0 0 0 .9573 4.9586l3.0054 2.3319C4.6718 5.1627 6.6559 3.5795 9 3.5795Z"
+            />
+          </svg>
           Sign up with Google
         </a>
 
-        <div className="mb-4 flex items-center gap-3 text-xs uppercase tracking-[2px] text-[#666666]">
-          <span className="h-px flex-1 bg-[#2a2a2a]" />
-          <span>Or use email</span>
-          <span className="h-px flex-1 bg-[#2a2a2a]" />
-        </div>
+        <p className="mb-6 text-sm leading-relaxed text-[#a4a4a4]">
+          We now support Google-only signup. Continue with your Google account.
+        </p>
 
-        <form className="space-y-4" onSubmit={handleSubmit} noValidate>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="signup-first-name" className="block text-sm text-[#aaaaaa] mb-1.5">
-                <span className="text-[#ff3c00]">*</span> First name
-              </label>
-              <input
-                id="signup-first-name"
-                type="text"
-                autoComplete="given-name"
-                required
-                placeholder="First name"
-                value={formValues.firstName}
-                onChange={(event) => {
-                  setFormValues((prev) => ({ ...prev, firstName: event.target.value }));
-                  setFormErrors((prev) => ({ ...prev, firstName: undefined }));
-                }}
-                className={getInputClassName(Boolean(formErrors.firstName))}
-              />
-              {formErrors.firstName ? <p className="mt-1.5 text-xs text-[#ff5a28]">{formErrors.firstName}</p> : null}
-            </div>
-
-            <div>
-              <label htmlFor="signup-last-name" className="block text-sm text-[#aaaaaa] mb-1.5">
-                Last name
-              </label>
-              <input
-                id="signup-last-name"
-                type="text"
-                autoComplete="family-name"
-                required
-                placeholder="Last name"
-                value={formValues.lastName}
-                onChange={(event) => {
-                  setFormValues((prev) => ({ ...prev, lastName: event.target.value }));
-                  setFormErrors((prev) => ({ ...prev, lastName: undefined }));
-                }}
-                className={getInputClassName(Boolean(formErrors.lastName))}
-              />
-              {formErrors.lastName ? <p className="mt-1.5 text-xs text-[#ff5a28]">{formErrors.lastName}</p> : null}
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="signup-email" className="block text-sm text-[#aaaaaa] mb-1.5">
-              <span className="text-[#ff3c00]">*</span> Email address
-            </label>
-            <input
-              id="signup-email"
-              type="email"
-              autoComplete="email"
-              required
-              placeholder="you@example.com"
-              value={formValues.email}
-              onChange={(event) => {
-                setFormValues((prev) => ({ ...prev, email: event.target.value }));
-                setFormErrors((prev) => ({ ...prev, email: undefined }));
-              }}
-              className={getInputClassName(Boolean(formErrors.email))}
-            />
-            {formErrors.email ? <p className="mt-1.5 text-xs text-[#ff5a28]">{formErrors.email}</p> : null}
-          </div>
-
-          <div>
-            <label htmlFor="signup-password" className="block text-sm text-[#aaaaaa] mb-1.5">
-              <span className="text-[#ff3c00]">*</span> Password
-            </label>
-            <input
-              id="signup-password"
-              type="password"
-              autoComplete="new-password"
-              required
-              placeholder="Create a password"
-              value={formValues.password}
-              onChange={(event) => {
-                setFormValues((prev) => ({ ...prev, password: event.target.value }));
-                setFormErrors((prev) => ({ ...prev, password: undefined }));
-              }}
-              className={getInputClassName(Boolean(formErrors.password))}
-            />
-            {formErrors.password ? <p className="mt-1.5 text-xs text-[#ff5a28]">{formErrors.password}</p> : null}
-          </div>
-
-          <div>
-            <label htmlFor="signup-confirm-password" className="block text-sm text-[#aaaaaa] mb-1.5">
-              Confirm password
-            </label>
-            <input
-              id="signup-confirm-password"
-              type="password"
-              autoComplete="new-password"
-              required
-              placeholder="Confirm your password"
-              value={formValues.confirmPassword}
-              onChange={(event) => {
-                setFormValues((prev) => ({ ...prev, confirmPassword: event.target.value }));
-                setFormErrors((prev) => ({ ...prev, confirmPassword: undefined }));
-              }}
-              className={getInputClassName(Boolean(formErrors.confirmPassword))}
-            />
-            {formErrors.confirmPassword ? (
-              <p className="mt-1.5 text-xs text-[#ff5a28]">{formErrors.confirmPassword}</p>
-            ) : null}
-          </div>
-
-          <label className="inline-flex items-start gap-2 text-sm text-[#aaaaaa]">
-            <input
-              type="checkbox"
-              required
-              checked={formValues.agreedToTerms}
-              onChange={(event) => {
-                setFormValues((prev) => ({ ...prev, agreedToTerms: event.target.checked }));
-                setFormErrors((prev) => ({ ...prev, agreedToTerms: undefined }));
-              }}
-              className="h-4 w-4 mt-0.5 accent-[#ff3c00]"
-            />
-            <span>
-              I agree to the{' '}
-              <button type="button" className="text-[#ff3c00] hover:text-[#ff5a28] transition-colors">
-                Terms
-              </button>{' '}
-              and{' '}
-              <button type="button" className="text-[#ff3c00] hover:text-[#ff5a28] transition-colors">
-                Privacy Policy
-              </button>
-              .
-            </span>
-          </label>
-          {formErrors.agreedToTerms ? <p className="text-xs text-[#ff5a28]">{formErrors.agreedToTerms}</p> : null}
-
-          <button
-            type="submit"
-            className="w-full h-11 bg-[#ff3c00] hover:bg-[#ff5a28] text-white text-sm font-medium uppercase tracking-[.5px] transition-colors"
-          >
-            Create account
-          </button>
-        </form>
-
-        <p className="mt-6 text-sm text-[#888888]">
+        <p className="mt-6 border-t border-[#202020] pt-5 text-sm text-[#8f8f8f]">
           Already have an account?{' '}
           <Link to="/login" className="text-[#ff3c00] hover:text-[#ff5a28] transition-colors">
             Log in
           </Link>
         </p>
-      </section>
+        </section>
+      </div>
     </main>
   );
 }

@@ -49,10 +49,12 @@ function NavSection({
 export function WorkspaceLayout({ children, headerActions }: WorkspaceLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const currentPath = location.pathname;
-  const displayName = user?.name || 'User Profile';
-  const userInitial = displayName.trim().charAt(0).toUpperCase() || 'U';
+  const fullName = user?.name?.trim() || '';
+  const [firstName = 'User'] = fullName.split(/\s+/).filter(Boolean);
+  const userInitial = firstName.charAt(0).toUpperCase() || 'U';
+  const profilePicture = user?.picture?.trim() || '';
   const handleWakeUpServerClick = () => {
     window.open(WAKE_UP_SERVER_URL, '_blank', 'noopener,noreferrer');
   };
@@ -105,19 +107,20 @@ export function WorkspaceLayout({ children, headerActions }: WorkspaceLayoutProp
             </div>
             <div className="inline-flex items-center gap-2">
               <div className="inline-flex items-center gap-2 rounded-full border border-[#2a2a2a] bg-[#151515] px-2 py-1.5 text-xs text-[#b1b1b1]">
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#242424] text-[11px] font-semibold text-[#f0ede8]">
-                  {userInitial}
-                </span>
-                <span className="max-w-[120px] truncate pr-1">{displayName}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void logout().then(() => navigate('/login', { replace: true }));
-                  }}
-                  className="rounded border border-[#323232] px-2 py-1 text-[10px] uppercase tracking-[1px] text-[#cfcfcf] hover:border-[#ff5a2f] hover:text-white"
-                >
-                  Logout
-                </button>
+                {profilePicture ? (
+                  <img
+                    src={profilePicture}
+                    alt={`${firstName} profile`}
+                    className="h-6 w-6 rounded-full object-cover"
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#242424] text-[11px] font-semibold text-[#f0ede8]">
+                    {userInitial}
+                  </span>
+                )}
+                <span className="max-w-[120px] truncate pr-1">{firstName}</span>
               </div>
             </div>
           </header>

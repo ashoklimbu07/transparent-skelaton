@@ -1,12 +1,38 @@
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import { Router, type Request, type Response } from 'express';
 import { readSessionUser, SESSION_COOKIE_NAME, signSession } from '../services/auth/session.js';
+import { UserModel } from '../models/user.model.js';
 
 const router = Router();
 
 const GOOGLE_STATE_COOKIE_NAME = 'google_oauth_state';
 const SESSION_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const GOOGLE_STATE_MAX_AGE_MS = 10 * 60 * 1000;
+const MIN_PASSWORD_LENGTH = 8;
+
+type SignupPayload = {
+    name: string;
+    email: string;
+    password: string;
+};
+
+function readString(value: unknown): string {
+    return typeof value === 'string' ? value.trim() : '';
+}
+
+function parseSignupPayload(body: unknown): SignupPayload {
+    const input = (body || {}) as Record<string, unknown>;
+    const firstName = readString(input.firstName);
+    const lastName = readString(input.lastName);
+    const composedName = [firstName, lastName].filter(Boolean).join(' ').trim();
+
+    return {
+        name: readString(input.name) || composedName,
+        email: readString(input.email).toLowerCase(),
+        password: readString(input.password),
+    };
+}
 
 function getFrontendUrl(): string {
     const raw = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
@@ -91,6 +117,59 @@ function getCookieOptions(req: Request) {
         path: '/',
     };
 }
+
+router.post('/signup', async (req: Request, res: Response) => {
+    try {
+        const { name, email, password } = parseSignupPayload(req.body);
+
+        if (!name || !email || !password) {
+            res.status(400).json({ error: 'name, email and password are required' });
+            return;
+        }
+
+        if (password.length < MIN_PASSWORD_LENGTH) {
+            res.status(400).json({ error: `password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+            return;
+        }
+
+        const existingUser = await UserModel.findOne({ email }).lean();
+        if (existingUser) {
+            res.status(409).json({ error: 'Email already registered' });
+            return;
+        }
+
+        const passwordHash = await bcrypt.hash(password, 12);
+        const createdUser = await UserModel.create({
+            name,
+            email,
+            passwordHash,
+            provider: 'local',
+            lastLoginAt: new Date(),
+        });
+
+        const sessionUser = {
+            id: createdUser._id.toString(),
+            email: createdUser.email,
+            name: createdUser.name,
+            ...(createdUser.picture ? { picture: createdUser.picture } : {}),
+        };
+        const sessionToken = signSession(sessionUser);
+
+        res.cookie(SESSION_COOKIE_NAME, sessionToken, {
+            ...getCookieOptions(req),
+            maxAge: SESSION_MAX_AGE_MS,
+        });
+
+        res.status(201).json({
+            message: 'Signup successful',
+            token: sessionToken,
+            user: sessionUser,
+        });
+    } catch (error) {
+        console.error('Signup error:', error);
+        res.status(500).json({ error: 'Failed to sign up' });
+    }
+});
 
 router.get('/google/start', (req: Request, res: Response) => {
     try {
@@ -179,11 +258,45 @@ router.get('/google/callback', async (req: Request, res: Response) => {
             throw new Error('Google profile is missing required identifiers.');
         }
 
+        const googleId = profile.sub;
+        const email = profile.email.toLowerCase();
+        const normalizedName = (profile.name || email).trim();
+        const now = new Date();
+
+        let user = await UserModel.findOne({ googleId });
+        if (!user) {
+            user = await UserModel.findOne({ email });
+        }
+
+        if (!user) {
+            user = await UserModel.create({
+                name: normalizedName,
+                email,
+                provider: 'google',
+                googleId,
+                ...(profile.picture ? { picture: profile.picture } : {}),
+                lastLoginAt: now,
+            });
+        } else {
+            user.name = normalizedName || user.name;
+            if (profile.picture) {
+                user.picture = profile.picture;
+            }
+            user.lastLoginAt = now;
+            if (!user.googleId) {
+                user.googleId = googleId;
+            }
+            if (user.provider !== 'google') {
+                user.provider = 'google';
+            }
+            await user.save();
+        }
+
         const sessionUser = {
-            id: profile.sub,
-            email: profile.email,
-            name: profile.name || profile.email,
-            ...(profile.picture ? { picture: profile.picture } : {}),
+            id: user._id.toString(),
+            email: user.email,
+            name: user.name,
+            ...(user.picture ? { picture: user.picture } : {}),
         };
 
         const sessionToken = signSession(sessionUser);
