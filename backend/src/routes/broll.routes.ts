@@ -65,12 +65,7 @@ router.post('/generate', async (req: Request, res: Response) => {
 
     const brollPrompts = await brollService.generateBrollPromptsFromScript(script, desiredScenes, signal);
 
-    // Count scenes from the output blocks (each scene should be one JSON object block).
-    const sceneCount = brollPrompts.plainText
-      .replace(/\r\n/g, '\n')
-      .split(/\n{2,}/)
-      .map((b) => b.trim())
-      .filter(Boolean).length;
+    const sceneCount = brollPrompts.scenes.length;
 
     const payload = {
       success: true,
@@ -85,6 +80,7 @@ router.post('/generate', async (req: Request, res: Response) => {
       sourceTool: 'broll.generate',
       input: { script, style, desiredScenes },
       output: payload,
+      // Keep combined output aligned with TXT export for History view/download.
       combinedOutput: brollPrompts.plainText,
       outputFormats: ['json', 'text'],
       files: [

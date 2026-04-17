@@ -14,13 +14,14 @@ export const brollService = {
     script: string,
     desiredScenes: number,
     signal?: AbortSignal
-  ): Promise<{ jsonText: string; plainText: string }> => {
+  ): Promise<{ scenes: BrollScene[]; jsonText: string; plainText: string }> => {
     const result = await runPipeline(script, desiredScenes, signal);
     const toSceneBlock = (scene: BrollScene): string => JSON.stringify(scene, null, 2);
-    const output = result.scenes.map(toSceneBlock).join('\n\n');
+    const plainText = result.scenes.map(toSceneBlock).join('\n\n');
     return {
-      jsonText: output,
-      plainText: output,
+      scenes: result.scenes,
+      jsonText: JSON.stringify(result.scenes, null, 2),
+      plainText,
     };
   },
 };

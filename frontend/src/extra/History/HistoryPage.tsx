@@ -37,7 +37,11 @@ function extractPromptLinesFromUnknown(value: unknown): string[] {
     try {
       return extractPromptLinesFromUnknown(JSON.parse(trimmed));
     } catch {
-      const matches = [...trimmed.matchAll(/"(?:originalText|imagePrompt)"\s*:\s*"((?:\\.|[^"])*)"/g)];
+      const matches = [
+        ...trimmed.matchAll(
+          /"(?:originalText|imagePrompt|visualPrompt|scene|prompt|text|segmentText)"\s*:\s*"((?:\\.|[^"])*)"/g,
+        ),
+      ];
       if (matches.length > 0) {
         return matches
           .map((match) => {
@@ -76,6 +80,9 @@ function extractPromptLinesFromUnknown(value: unknown): string[] {
     }
     if (typeof objectValue.segmentText === 'string') {
       return [normalizePromptLine(objectValue.segmentText)].filter(Boolean);
+    }
+    if (typeof objectValue.scene === 'string') {
+      return [normalizePromptLine(objectValue.scene)].filter(Boolean);
     }
 
     if (Array.isArray(objectValue.scenes)) {
@@ -189,9 +196,18 @@ function buildDownloadText(item: HistoryItem): string {
             const row = entry as Record<string, unknown>;
             const originalText = normalizePromptLine(row.originalText);
             const visualPrompt = normalizePromptLine(row.visualPrompt);
+            const brollPrompt = normalizePromptLine(row.scene);
             const segmentLabel =
               item.sourceTool === 'video-scene-analyzer.analyze-video' ? 'VIDEO SEGMENT' : 'SCRIPT SEGMENT';
-            if (!originalText && !visualPrompt) return '';
+            if (!originalText && !visualPrompt && !brollPrompt) return '';
+
+            if (brollPrompt && !originalText && !visualPrompt) {
+              return [
+                `SCENE ${index + 1}`,
+                '------------------',
+                `B-ROLL PROMPT: ${brollPrompt}`,
+              ].join('\n');
+            }
 
             return [
               `SCENE ${index + 1}`,
@@ -230,20 +246,76 @@ function downloadAsText(item: HistoryItem) {
   URL.revokeObjectURL(objectUrl);
 }
 
+type TimeFilter = 'all' | '24h' | 'day' | '7d';
+
+function matchesTimeFilter(item: HistoryItem, timeFilter: TimeFilter): boolean {
+  if (timeFilter === 'all') return true;
+
+  const createdMs = new Date(item.createdAt).getTime();
+  if (!Number.isFinite(createdMs)) return false;
+
+  const now = Date.now();
+  const oneHour = 60 * 60 * 1000;
+  const oneDay = 24 * oneHour;
+
+  if (timeFilter === '24h') {
+    return now - createdMs <= oneDay;
+  }
+
+  if (timeFilter === 'day') {
+    const created = new Date(createdMs);
+    const today = new Date(now);
+    return (
+      created.getFullYear() === today.getFullYear() &&
+      created.getMonth() === today.getMonth() &&
+      created.getDate() === today.getDate()
+    );
+  }
+
+  return now - createdMs <= 7 * oneDay;
+}
+
 export function HistoryPage() {
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
+  const [toolFilter, setToolFilter] = useState<string>('all');
+
+  const availableTools = useMemo(() => {
+    return Array.from(new Set(items.map((item) => item.sourceTool))).sort((a, b) => formatLabel(a).localeCompare(formatLabel(b)));
+  }, [items]);
+
+  const filteredItems = useMemo(
+    () =>
+      items.filter((item) => {
+        if (!matchesTimeFilter(item, timeFilter)) return false;
+        if (toolFilter !== 'all' && item.sourceTool !== toolFilter) return false;
+        return true;
+      }),
+    [items, timeFilter, toolFilter],
+  );
 
   const selectedItem = useMemo(
-    () => items.find((item) => item.historyId === selectedHistoryId) || items[0] || null,
-    [items, selectedHistoryId],
+    () => filteredItems.find((item) => item.historyId === selectedHistoryId) || filteredItems[0] || null,
+    [filteredItems, selectedHistoryId],
   );
   const selectedSceneCount = useMemo(
     () => (selectedItem ? getSceneCount(selectedItem) : null),
     [selectedItem],
   );
+
+  useEffect(() => {
+    if (!selectedHistoryId && filteredItems.length > 0) {
+      setSelectedHistoryId(filteredItems[0].historyId);
+      return;
+    }
+
+    if (selectedHistoryId && !filteredItems.some((item) => item.historyId === selectedHistoryId)) {
+      setSelectedHistoryId(filteredItems[0]?.historyId || null);
+    }
+  }, [filteredItems, selectedHistoryId]);
 
   const load = async () => {
     setLoading(true);
@@ -285,12 +357,53 @@ export function HistoryPage() {
 
         {error ? <p className="mb-4 border border-[#4a1f1f] bg-[#2a1414] px-3 py-2 text-sm text-[#ff8d8d]">{error}</p> : null}
 
+        <div className="mb-4 grid grid-cols-1 gap-3 border border-[#242424] bg-[#131313] p-3 sm:grid-cols-3">
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] uppercase tracking-[1.2px] text-[#9b9b9b]">Time</span>
+            <select
+              value={timeFilter}
+              onChange={(event) => setTimeFilter(event.target.value as TimeFilter)}
+              className="border border-[#2c2c2c] bg-[#191919] px-2 py-2 text-xs text-[#d0d0d0] focus:border-[#e8380d]/60 focus:outline-none"
+            >
+              <option value="all">All time</option>
+              <option value="24h">Last 24 hrs</option>
+              <option value="day">Today</option>
+              <option value="7d">Last 7 days</option>
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-[11px] uppercase tracking-[1.2px] text-[#9b9b9b]">Tool</span>
+            <select
+              value={toolFilter}
+              onChange={(event) => setToolFilter(event.target.value)}
+              className="border border-[#2c2c2c] bg-[#191919] px-2 py-2 text-xs text-[#d0d0d0] focus:border-[#e8380d]/60 focus:outline-none"
+            >
+              <option value="all">All tools</option>
+              {availableTools.map((tool) => (
+                <option key={tool} value={tool}>
+                  {formatLabel(tool)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="flex items-end">
+            <p className="text-xs text-[#9f9f9f]">
+              Showing {filteredItems.length} of {items.length}
+            </p>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[360px_1fr]">
           <aside className="max-h-[68vh] overflow-y-auto border border-[#242424] bg-[#131313] p-3">
             {loading ? <p className="text-sm text-[#8a8a8a]">Loading history...</p> : null}
             {!loading && items.length === 0 ? <p className="text-sm text-[#8a8a8a]">No history yet.</p> : null}
+            {!loading && items.length > 0 && filteredItems.length === 0 ? (
+              <p className="text-sm text-[#8a8a8a]">No history matches current filters.</p>
+            ) : null}
             <div className="space-y-2">
-              {items.map((item) => {
+              {filteredItems.map((item) => {
                 const isActive = selectedItem?.historyId === item.historyId;
                 const sceneCount = getSceneCount(item);
                 return (
