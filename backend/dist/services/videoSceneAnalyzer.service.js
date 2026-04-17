@@ -1,108 +1,99 @@
 import { GoogleGenAI, Type } from '@google/genai';
-const VISUAL_TEMPLATE = {
-    scene: 'SWAP_ME',
-    style: 'SWAP_ME',
-    shot: {
-        composition: 'SWAP_ME',
-        camera_motion: 'SWAP_ME',
-        frame_rate: '24 fps',
-        resolution: '1920 × 1080',
-        lens: 'SWAP_ME',
-        look: 'SWAP_ME',
+const SHOT_SPEC_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        composition: { type: Type.STRING, description: 'Framing and subject focus, e.g. medium shot, eye-level' },
+        camera_motion: { type: Type.STRING, description: 'How the camera moves or static' },
+        frame_rate: { type: Type.STRING, description: 'e.g. 24 fps' },
+        resolution: { type: Type.STRING, description: 'e.g. 1920 x 1080' },
+        lens: { type: Type.STRING, description: 'e.g. 50mm lens' },
+        look: { type: Type.STRING, description: 'Optional film / color / texture notes' },
     },
-    voice_over: {
-        language: 'English',
-        tone: 'SWAP_ME',
-        mode: 'Narrative, explanatory',
-        emotion: 'SWAP_ME',
-        narration_text: 'SWAP_ME',
-        duration_sec: 'SWAP_ME',
+    required: ['composition', 'camera_motion', 'frame_rate', 'resolution', 'lens'],
+};
+const LIGHTING_SPEC_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        primary: { type: Type.STRING },
+        secondary: { type: Type.STRING },
+        accents: { type: Type.STRING },
     },
-    house_settings: {
-        typeface: {
-            hook: 'SWAP_ME',
-            subtext: 'SWAP_ME',
+};
+const TIMELINE_BEAT_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        time: { type: Type.STRING },
+        action: { type: Type.STRING },
+    },
+    required: ['time', 'action'],
+};
+const TEXT_RULES_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        emoji_policy: { type: Type.STRING, description: 'Must always be "no emojis"' },
+        logo_policy: { type: Type.STRING, description: 'Must always be "no logos"' },
+        text_policy: { type: Type.STRING, description: 'Must always be "no on-screen text"' },
+        contrast: { type: Type.STRING, description: 'Contrast guidance for readability and scene tone' },
+    },
+    required: ['emoji_policy', 'logo_policy', 'text_policy', 'contrast'],
+};
+const COLOR_PALETTE_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        background: { type: Type.STRING },
+        ink_primary: { type: Type.STRING },
+        ink_secondary: { type: Type.STRING },
+        splatter: { type: Type.STRING },
+        text_primary: { type: Type.STRING },
+    },
+    required: ['background', 'ink_primary', 'ink_secondary', 'splatter', 'text_primary'],
+};
+const VISUAL_RULES_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        prohibited_elements: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: 'Always include bans such as logos/text overlays if relevant',
         },
-        overlay_style: 'SWAP_ME',
-        animation: {
-            enter: 'SWAP_ME',
-            enter_duration_ms: 600,
-            exit: 'SWAP_ME',
-            exit_duration_ms: 500,
-        },
-        callouts: { stroke_px: 0, corner_radius_px: 0 },
-        sizes: {
-            hook_font_height_pct: 'SWAP_ME',
-            sublabel_font_height_pct: 'SWAP_ME',
-            safe_margins_pct: 7,
-        },
+        grain: { type: Type.STRING },
+        sharpen: { type: Type.STRING },
     },
-    timeline: [
-        { time: '0.0–1.5 s', action: 'SWAP_ME' },
-        { time: '1.5–3.0 s', action: 'SWAP_ME' },
-        { time: '3.0–4.0 s', action: 'SWAP_ME' },
-        { time: '4.0–5.5 s', action: 'SWAP_ME' },
-        { time: '5.5–6.5 s', action: 'SWAP_ME' },
-        { time: '6.5–7.5 s', action: 'SWAP_ME' },
-        { time: '7.5–END', action: 'SWAP_ME' },
-    ],
-    lighting: {
-        primary: 'SWAP_ME',
-        secondary: 'SWAP_ME',
-        accents: 'SWAP_ME',
-    },
-    audio: {
-        ambient: 'SWAP_ME',
-        sfx: ['SWAP_ME', 'SWAP_ME', 'SWAP_ME'],
-        music: {
-            track: 'SWAP_ME',
-            description: 'SWAP_ME',
-            tempo: 'SWAP_ME',
-            key: 'SWAP_ME',
-            dynamic_curve: 'SWAP_ME',
-        },
-        mix: {
-            integrated_loudness: '-14 LUFS',
-            sidechain_music_db_on_impacts: -3,
-            natural_reverb: true,
+    required: ['prohibited_elements'],
+};
+const METADATA_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        series: { type: Type.STRING },
+        task: { type: Type.STRING },
+        scene_number: { type: Type.STRING },
+        tags: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: 'Scene tags for retrieval/filtering',
         },
     },
-    text_rules: {
-        emoji_policy: 'no emojis',
-        contrast: 'SWAP_ME',
+    required: ['tags'],
+};
+/** Structured spec (not a stringified blob) so Gemini returns consistent JSON and avoids output truncation. */
+const VISUAL_PROMPT_SPEC_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        scene: { type: Type.STRING, description: 'What is on screen: subject, environment, action' },
+        style: { type: Type.STRING, description: 'Overall visual style and mood, e.g. realistic, natural lighting' },
+        shot: SHOT_SPEC_SCHEMA,
+        lighting: LIGHTING_SPEC_SCHEMA,
+        timeline: {
+            type: Type.ARRAY,
+            items: TIMELINE_BEAT_SCHEMA,
+            description: 'Optional beat-by-beat actions with time ranges',
+        },
+        text_rules: TEXT_RULES_SCHEMA,
+        color_palette: COLOR_PALETTE_SCHEMA,
+        visual_rules: VISUAL_RULES_SCHEMA,
+        metadata: METADATA_SCHEMA,
     },
-    color_palette: {
-        background: 'SWAP_ME',
-        ink_primary: '#111111',
-        ink_secondary: '#444444',
-        splatter: '#222222',
-        text_primary: '#111111',
-    },
-    transitions: {
-        between_scenes: 'SWAP_ME',
-        impact_frame_usage: 'SWAP_ME',
-        forbidden: ['glitch', 'marker squeaks', 'cartoon pops'],
-    },
-    vfx_rules: {
-        grain: 'SWAP_ME',
-        particles: 'SWAP_ME',
-        camera_shake: 'SWAP_ME',
-    },
-    visual_rules: {
-        prohibited_elements: ['3D dinos', 'cartoon outlines', 'logos'],
-        grain: 'SWAP_ME',
-        sharpen: 'SWAP_ME',
-    },
-    export: {
-        preset: '1920x1080_h264_high',
-        target_duration_sec: 'SWAP_ME',
-    },
-    metadata: {
-        series: 'SWAP_ME',
-        task: 'SWAP_ME',
-        scene_number: 'SWAP_ME',
-        tags: ['SWAP_ME', 'SWAP_ME', 'SWAP_ME'],
-    },
+    required: ['scene', 'style', 'shot', 'text_rules', 'color_palette', 'visual_rules', 'metadata'],
 };
 const SCRIPT_ANALYSIS_INSTRUCTIONS = `You are a professional video editor and B-roll director.
 Analyze the following video script, which may be up to 10 minutes long.
@@ -114,7 +105,10 @@ Guidelines:
 2. For a 10-minute script, generate as many scenes as necessary to cover the audio continuously (this could be 50-100+ scenes).
 3. For each scene, provide:
    - "originalText": The exact sentence or phrase from the script.
-   - "visualPrompt": You MUST use the provided JSON template for the visual prompt. Fill in all "SWAP_ME" fields relevant to the scene. Return the result as a valid, minimized JSON string inside the field.`;
+   - "visualPrompt": A structured visual specification: scene (what we see), style (look/mood), shot (composition, motion, lens, resolution, frame rate), and optional lighting/timeline/color palette.
+   - Include "text_rules" with fixed constraints: emoji_policy="no emojis", logo_policy="no logos", text_policy="no on-screen text", plus a concrete contrast value.
+   - Keep "visual_rules" and include prohibited_elements.
+   - Keep "metadata" with useful "tags" for the scene. Be concrete so an image/video model can recreate the shot.`;
 const VIDEO_ANALYSIS_INSTRUCTIONS = `You are a professional video director.
 Analyze this video. We want to recreate this video shot-for-shot using AI generated stock footage (B-roll).
 
@@ -122,16 +116,21 @@ Break the video down into chronological visual scenes.
 
 For each scene:
 1. "originalText": Describe exactly what is happening in this segment of the video, or the narration being spoken.
-2. "visualPrompt": Create a detailed instruction to generate a similar shot. You MUST use the provided JSON template. Fill in all "SWAP_ME" fields to match the visual style, lighting, and composition of the source video.
+2. "visualPrompt": Structured fields — scene (on-screen content), style (look/mood), shot (composition, camera motion, lens, resolution, frame rate), lighting/timeline when useful, plus:
+   - text_rules with fixed policies: no emojis, no logos, no on-screen text
+   - color_palette with background, ink_primary, ink_secondary, splatter, text_primary
+   - visual_rules (include prohibited_elements)
+   - metadata with tags
 
 Return a JSON object with a "scenes" array.`;
 const SINGLE_SCENE_INSTRUCTIONS = `You are a professional video editor.
-Create a detailed visual prompt for the provided single scene description or script segment.
+Create a detailed visual specification for the provided single scene description or script segment.
 
-Task:
-Fill in the provided JSON template to create a complete visual specification for this scene. Replace all "SWAP_ME" values with creative, high-quality direction suitable for an AI video/image generator.
-
-Return ONLY the filled-out JSON string.`;
+Fill scene, style, and shot (composition, camera_motion, frame_rate, resolution, lens). Add lighting and timeline when they help describe motion or edits.
+Always include text_rules with: no emojis, no logos, no on-screen text.
+Always include color_palette with background, ink_primary, ink_secondary, splatter, text_primary.
+Also include visual_rules and metadata.tags.
+Return structured data matching the response schema.`;
 const RESPONSE_SCHEMA = {
     type: Type.OBJECT,
     properties: {
@@ -141,13 +140,23 @@ const RESPONSE_SCHEMA = {
                 type: Type.OBJECT,
                 properties: {
                     originalText: { type: Type.STRING, description: 'The description of the event or the audio transcript for this scene.' },
-                    visualPrompt: { type: Type.STRING, description: 'The filled-out JSON template string' },
+                    visualPrompt: VISUAL_PROMPT_SPEC_SCHEMA,
                 },
                 required: ['originalText', 'visualPrompt'],
             },
         },
     },
     required: ['scenes'],
+};
+const REGENERATE_RESPONSE_SCHEMA = {
+    type: Type.OBJECT,
+    properties: {
+        visualPrompt: VISUAL_PROMPT_SPEC_SCHEMA,
+    },
+    required: ['visualPrompt'],
+};
+const GEMINI_GENERATION_CONFIG = {
+    maxOutputTokens: 8192,
 };
 const DEFAULT_MODEL = 'gemini-2.5-flash-lite';
 const DEFAULT_IMAGE_MODEL = 'imagen-4.0-generate-001';
@@ -170,18 +179,28 @@ const getVideoAnalyzerApiKeyConfig = () => {
     }
     throw new Error('Missing Gemini API key for Video Scene Analyzer. Set GEMINI_API_KEY_VIDEO_SCENE_ANALYZER or ANALYZER_GEMINI_KEY in backend/.env');
 };
+const normalizeVisualPromptForClient = (raw) => {
+    if (raw == null) {
+        return '{}';
+    }
+    if (typeof raw === 'object') {
+        return JSON.stringify(raw, null, 2);
+    }
+    if (typeof raw === 'string') {
+        try {
+            return JSON.stringify(JSON.parse(raw), null, 2);
+        }
+        catch {
+            return raw;
+        }
+    }
+    return String(raw);
+};
 const mapResponseToScenes = (json) => {
     return json.scenes.map((scene, index) => ({
         id: `scene-${Date.now()}-${index}`,
         originalText: scene.originalText,
-        visualPrompt: (() => {
-            try {
-                return JSON.stringify(JSON.parse(scene.visualPrompt), null, 2);
-            }
-            catch {
-                return scene.visualPrompt;
-            }
-        })(),
+        visualPrompt: normalizeVisualPromptForClient(scene.visualPrompt),
         status: 'pending',
     }));
 };
@@ -237,8 +256,9 @@ export const videoSceneAnalyzerService = {
         const client = new GoogleGenAI({ apiKey: key });
         const response = await client.models.generateContent({
             model: DEFAULT_MODEL,
-            contents: `${SCRIPT_ANALYSIS_INSTRUCTIONS}\n\nTemplate:\n${JSON.stringify(VISUAL_TEMPLATE)}\n\nScript:\n${script}`,
+            contents: `${SCRIPT_ANALYSIS_INSTRUCTIONS}\n\nScript:\n${script}`,
             config: {
+                ...GEMINI_GENERATION_CONFIG,
                 responseMimeType: 'application/json',
                 responseSchema: RESPONSE_SCHEMA,
             },
@@ -262,11 +282,12 @@ export const videoSceneAnalyzerService = {
                             },
                         },
                         {
-                            text: `${VIDEO_ANALYSIS_INSTRUCTIONS}\n\nTemplate:\n${JSON.stringify(VISUAL_TEMPLATE)}`,
+                            text: VIDEO_ANALYSIS_INSTRUCTIONS,
                         },
                     ],
                 },
                 config: {
+                    ...GEMINI_GENERATION_CONFIG,
                     responseMimeType: 'application/json',
                     responseSchema: RESPONSE_SCHEMA,
                 },
@@ -287,25 +308,15 @@ export const videoSceneAnalyzerService = {
         const client = new GoogleGenAI({ apiKey: key });
         const response = await client.models.generateContent({
             model: DEFAULT_MODEL,
-            contents: `${SINGLE_SCENE_INSTRUCTIONS}\n\nSegment: "${segmentText}"\n\nTemplate:\n${JSON.stringify(VISUAL_TEMPLATE)}`,
+            contents: `${SINGLE_SCENE_INSTRUCTIONS}\n\nSegment: "${segmentText}"`,
             config: {
+                ...GEMINI_GENERATION_CONFIG,
                 responseMimeType: 'application/json',
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        visualPrompt: { type: Type.STRING, description: 'The filled-out JSON template string' },
-                    },
-                },
+                responseSchema: REGENERATE_RESPONSE_SCHEMA,
             },
         });
         const json = JSON.parse(response.text || '{}');
-        const promptValue = json.visualPrompt || response.text || '{}';
-        try {
-            return JSON.stringify(JSON.parse(promptValue), null, 2);
-        }
-        catch {
-            return promptValue;
-        }
+        return normalizeVisualPromptForClient(json.visualPrompt ?? response.text);
     },
     async generateImage(prompt, styleModifier, aspectRatio) {
         const fullPrompt = parseVisualPromptToText(prompt, styleModifier);

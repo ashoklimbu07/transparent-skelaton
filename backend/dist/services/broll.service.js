@@ -10,10 +10,11 @@ export const brollService = {
     generateBrollPromptsFromScript: async (script, desiredScenes, signal) => {
         const result = await runPipeline(script, desiredScenes, signal);
         const toSceneBlock = (scene) => JSON.stringify(scene, null, 2);
-        const output = result.scenes.map(toSceneBlock).join('\n\n');
+        const plainText = result.scenes.map(toSceneBlock).join('\n\n');
         return {
-            jsonText: output,
-            plainText: output,
+            scenes: result.scenes,
+            jsonText: JSON.stringify(result.scenes, null, 2),
+            plainText,
         };
     },
 };

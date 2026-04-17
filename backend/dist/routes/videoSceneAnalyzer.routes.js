@@ -2,6 +2,20 @@ import { Router } from 'express';
 import { videoSceneAnalyzerService } from '../services/videoSceneAnalyzer.service.js';
 import { persistGenerationHistory } from '../services/history.service.js';
 const router = Router();
+function buildAnalyzerCombinedOutput(scenes, segmentLabel) {
+    return scenes
+        .map((scene, index) => {
+        const originalText = typeof scene.originalText === 'string' ? scene.originalText.trim() : '';
+        const visualPrompt = typeof scene.visualPrompt === 'string' ? scene.visualPrompt.trim() : '';
+        return [
+            `SCENE ${index + 1}`,
+            '------------------',
+            `${segmentLabel}: "${originalText}"`,
+            `VISUAL PROMPT: ${visualPrompt}`,
+        ].join('\n');
+    })
+        .join('\n\n');
+}
 router.post('/analyze-script', async (req, res) => {
     try {
         const script = typeof req.body?.script === 'string' ? req.body.script.trim() : '';
@@ -11,18 +25,24 @@ router.post('/analyze-script', async (req, res) => {
         }
         const scenes = await videoSceneAnalyzerService.analyzeScript(script);
         const payload = { scenes };
+        const combinedOutput = buildAnalyzerCombinedOutput(scenes, 'SCRIPT SEGMENT');
         await persistGenerationHistory({
             req,
             sourceTool: 'video-scene-analyzer.analyze-script',
             input: { script },
             output: payload,
-            combinedOutput: JSON.stringify(scenes),
-            outputFormats: ['json'],
+            combinedOutput,
+            outputFormats: ['json', 'text'],
             files: [
                 {
                     name: 'analyzed-script-scenes.json',
                     mimeType: 'application/json',
                     content: JSON.stringify(scenes, null, 2),
+                },
+                {
+                    name: 'analyzed-script-scenes.txt',
+                    mimeType: 'text/plain',
+                    content: combinedOutput,
                 },
             ],
         });
@@ -48,6 +68,7 @@ router.post('/analyze-video', async (req, res) => {
         }
         const scenes = await videoSceneAnalyzerService.analyzeVideo(videoBase64, mimeType);
         const payload = { scenes };
+        const combinedOutput = buildAnalyzerCombinedOutput(scenes, 'VIDEO SEGMENT');
         await persistGenerationHistory({
             req,
             sourceTool: 'video-scene-analyzer.analyze-video',
@@ -56,13 +77,18 @@ router.post('/analyze-video', async (req, res) => {
                 videoBytesApprox: Math.floor((videoBase64.length * 3) / 4),
             },
             output: payload,
-            combinedOutput: JSON.stringify(scenes),
-            outputFormats: ['json'],
+            combinedOutput,
+            outputFormats: ['json', 'text'],
             files: [
                 {
                     name: 'analyzed-video-scenes.json',
                     mimeType: 'application/json',
                     content: JSON.stringify(scenes, null, 2),
+                },
+                {
+                    name: 'analyzed-video-scenes.txt',
+                    mimeType: 'text/plain',
+                    content: combinedOutput,
                 },
             ],
         });

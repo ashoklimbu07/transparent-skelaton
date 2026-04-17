@@ -39,7 +39,7 @@ export const useDirectorState = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [selectedStyle, setSelectedStyle] = useState(VISUAL_STYLES[0]);
-  const [selectedRatio, setSelectedRatio] = useState<AspectRatio>(ASPECT_RATIO.LANDSCAPE);
+  const [selectedRatio, setSelectedRatio] = useState<AspectRatio>(ASPECT_RATIO.PORTRAIT);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [isGeneratingAllVideos, setIsGeneratingAllVideos] = useState(false);
