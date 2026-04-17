@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { generateManualStoryPrompts } from '../services/manualStory.service.js';
+import { persistGenerationHistory } from '../services/history.service.js';
 
 const router = Router();
 
@@ -119,13 +120,44 @@ router.post('/generate', async (req: Request, res: Response) => {
       signal,
     });
 
-    res.json({
+    const payload = {
       success: true,
       sceneCount: scenesClean.length,
       characterCount: Object.keys(charactersClean).length,
       promptsByScene: result.promptsByScene,
       promptsPlain: result.promptsPlain,
+    };
+
+    await persistGenerationHistory({
+      req,
+      sourceTool: 'manual-story.generate',
+      input: {
+        characters: charactersClean,
+        scenes: scenesClean,
+        style,
+      },
+      output: payload,
+      combinedOutput: result.promptsPlain,
+      outputFormats: ['json', 'text'],
+      files: [
+        {
+          name: 'manual-story-prompts.json',
+          mimeType: 'application/json',
+          content: JSON.stringify(result.promptsByScene, null, 2),
+        },
+        {
+          name: 'manual-story-prompts.txt',
+          mimeType: 'text/plain',
+          content: result.promptsPlain,
+        },
+      ],
+      metadata: {
+        sceneCount: scenesClean.length,
+        characterCount: Object.keys(charactersClean).length,
+      },
     });
+
+    res.json(payload);
   } catch (error) {
     if (signal.aborted || (error instanceof Error && error.name === 'AbortError')) {
       console.log('🛑 Manual Story: Request closed');

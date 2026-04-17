@@ -12,6 +12,7 @@ import { renderHealthStatusPage } from './components/healthStatusPage.js';
 import { authRoutes } from './routes/auth.routes.js';
 import { requireAuth } from './middleware/requireAuth.js';
 import { connectDB } from './config/db.js';
+import { historyRoutes } from './routes/history.routes.js';
 
 function normalizeOrigin(origin: string): string {
     return origin.trim().replace(/\/+$/, '').toLowerCase();
@@ -113,6 +114,7 @@ app.use('/api/broll', requireAuth, brollRoutes);
 app.use('/api/manual-story', requireAuth, manualStoryRoutes);
 app.use('/api/video-scene-analyzer', requireAuth, videoSceneAnalyzerRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/history', requireAuth, historyRoutes);
 
 app.get('/api/health', (req, res) => {
     const brollKeys = getBrollApiKeys();

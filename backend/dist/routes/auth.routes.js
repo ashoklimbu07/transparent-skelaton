@@ -206,11 +206,43 @@ router.get('/google/callback', async (req, res) => {
         if (!profile.sub || !profile.email) {
             throw new Error('Google profile is missing required identifiers.');
         }
+        const googleId = profile.sub;
+        const email = profile.email.toLowerCase();
+        const normalizedName = (profile.name || email).trim();
+        const now = new Date();
+        let user = await UserModel.findOne({ googleId });
+        if (!user) {
+            user = await UserModel.findOne({ email });
+        }
+        if (!user) {
+            user = await UserModel.create({
+                name: normalizedName,
+                email,
+                provider: 'google',
+                googleId,
+                ...(profile.picture ? { picture: profile.picture } : {}),
+                lastLoginAt: now,
+            });
+        }
+        else {
+            user.name = normalizedName || user.name;
+            if (profile.picture) {
+                user.picture = profile.picture;
+            }
+            user.lastLoginAt = now;
+            if (!user.googleId) {
+                user.googleId = googleId;
+            }
+            if (user.provider !== 'google') {
+                user.provider = 'google';
+            }
+            await user.save();
+        }
         const sessionUser = {
-            id: profile.sub,
-            email: profile.email,
-            name: profile.name || profile.email,
-            ...(profile.picture ? { picture: profile.picture } : {}),
+            id: user._id.toString(),
+            email: user.email,
+            name: user.name,
+            ...(user.picture ? { picture: user.picture } : {}),
         };
         const sessionToken = signSession(sessionUser);
         res.cookie(SESSION_COOKIE_NAME, sessionToken, {

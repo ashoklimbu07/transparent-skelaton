@@ -28,7 +28,6 @@ const usersSchema = new Schema({
     googleId: {
         type: String,
         required: false,
-        index: true,
     },
     picture: {
         type: String,
@@ -44,5 +43,6 @@ const usersSchema = new Schema({
 });
 usersSchema.index({ createdAt: -1 });
 usersSchema.index({ provider: 1, email: 1 });
+usersSchema.index({ googleId: 1 }, { unique: true, sparse: true });
 export const UserModel = model('Users', usersSchema);
 //# sourceMappingURL=user.model.js.map

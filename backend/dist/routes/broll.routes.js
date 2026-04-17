@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { brollService } from '../services/broll.service.js';
+import { persistGenerationHistory } from '../services/history.service.js';
 const router = Router();
 // POST /api/broll/generate - Generate B-roll prompts from a raw script
 router.post('/generate', async (req, res) => {
@@ -56,13 +57,37 @@ router.post('/generate', async (req, res) => {
             .split(/\n{2,}/)
             .map((b) => b.trim())
             .filter(Boolean).length;
-        res.json({
+        const payload = {
             success: true,
             style,
             promptsJson: brollPrompts.jsonText,
             promptsPlain: brollPrompts.plainText,
             totalScenes: sceneCount
+        };
+        await persistGenerationHistory({
+            req,
+            sourceTool: 'broll.generate',
+            input: { script, style, desiredScenes },
+            output: payload,
+            combinedOutput: brollPrompts.plainText,
+            outputFormats: ['json', 'text'],
+            files: [
+                {
+                    name: 'broll-prompts.json',
+                    mimeType: 'application/json',
+                    content: brollPrompts.jsonText,
+                },
+                {
+                    name: 'broll-prompts.txt',
+                    mimeType: 'text/plain',
+                    content: brollPrompts.plainText,
+                },
+            ],
+            metadata: {
+                totalScenes: sceneCount,
+            },
         });
+        res.json(payload);
     }
     catch (error) {
         if (signal.aborted || (error instanceof Error && error.name === 'AbortError')) {

@@ -100,6 +100,28 @@ export interface ManualStoryGenerationResponse {
 
 export type ManualStoryStyle = 'cinematic-35mm' | 'photorealistic';
 
+export interface HistoryFile {
+  name?: string;
+  mimeType?: string;
+  url?: string;
+  content?: string;
+}
+
+export interface HistoryItem {
+  historyId: string;
+  sourceTool: string;
+  userEmail: string;
+  userName?: string;
+  input?: unknown;
+  output?: unknown;
+  combinedOutput?: string;
+  outputFormats?: string[];
+  files?: HistoryFile[];
+  metadata?: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const apiService = {
   wakeBackend: async (signal?: AbortSignal): Promise<boolean> => {
     return tryWakeBackend(signal);
@@ -241,5 +263,26 @@ export const apiService = {
     };
 
     return execute();
+  },
+
+  getGenerationHistory: async (limit = 100, signal?: AbortSignal): Promise<HistoryItem[]> => {
+    const response = await fetch(`${API_BASE_URL}/history?limit=${encodeURIComponent(String(limit))}`, {
+      method: 'GET',
+      headers: {
+        ...getAuthHeaders(),
+      },
+      credentials: 'include',
+      signal,
+    });
+
+    if (!response.ok) {
+      const error = await parseJsonResponse<{ error?: string; details?: string }>(response, 'History fetch');
+      const details = typeof error.details === 'string' ? error.details : '';
+      const message = details ? `${error.error}: ${details}` : error.error || 'Failed to fetch history';
+      throw new Error(message);
+    }
+
+    const data = await parseJsonResponse<{ items?: HistoryItem[] }>(response, 'History fetch');
+    return Array.isArray(data.items) ? data.items : [];
   },
 };

@@ -1,8 +1,29 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { videoSceneAnalyzerService } from '../services/videoSceneAnalyzer.service.js';
+import { persistGenerationHistory } from '../services/history.service.js';
 
 const router = Router();
+
+type AnalyzerScene = {
+  originalText?: string;
+  visualPrompt?: string;
+};
+
+function buildAnalyzerCombinedOutput(scenes: AnalyzerScene[], segmentLabel: 'SCRIPT SEGMENT' | 'VIDEO SEGMENT'): string {
+  return scenes
+    .map((scene, index) => {
+      const originalText = typeof scene.originalText === 'string' ? scene.originalText.trim() : '';
+      const visualPrompt = typeof scene.visualPrompt === 'string' ? scene.visualPrompt.trim() : '';
+      return [
+        `SCENE ${index + 1}`,
+        '------------------',
+        `${segmentLabel}: "${originalText}"`,
+        `VISUAL PROMPT: ${visualPrompt}`,
+      ].join('\n');
+    })
+    .join('\n\n');
+}
 
 router.post('/analyze-script', async (req: Request, res: Response) => {
   try {
@@ -13,7 +34,29 @@ router.post('/analyze-script', async (req: Request, res: Response) => {
     }
 
     const scenes = await videoSceneAnalyzerService.analyzeScript(script);
-    res.json({ scenes });
+    const payload = { scenes };
+    const combinedOutput = buildAnalyzerCombinedOutput(scenes, 'SCRIPT SEGMENT');
+    await persistGenerationHistory({
+      req,
+      sourceTool: 'video-scene-analyzer.analyze-script',
+      input: { script },
+      output: payload,
+      combinedOutput,
+      outputFormats: ['json', 'text'],
+      files: [
+        {
+          name: 'analyzed-script-scenes.json',
+          mimeType: 'application/json',
+          content: JSON.stringify(scenes, null, 2),
+        },
+        {
+          name: 'analyzed-script-scenes.txt',
+          mimeType: 'text/plain',
+          content: combinedOutput,
+        },
+      ],
+    });
+    res.json(payload);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Video Scene Analyzer script analysis error:', message);
@@ -35,7 +78,32 @@ router.post('/analyze-video', async (req: Request, res: Response) => {
     }
 
     const scenes = await videoSceneAnalyzerService.analyzeVideo(videoBase64, mimeType);
-    res.json({ scenes });
+    const payload = { scenes };
+    const combinedOutput = buildAnalyzerCombinedOutput(scenes, 'VIDEO SEGMENT');
+    await persistGenerationHistory({
+      req,
+      sourceTool: 'video-scene-analyzer.analyze-video',
+      input: {
+        mimeType,
+        videoBytesApprox: Math.floor((videoBase64.length * 3) / 4),
+      },
+      output: payload,
+      combinedOutput,
+      outputFormats: ['json', 'text'],
+      files: [
+        {
+          name: 'analyzed-video-scenes.json',
+          mimeType: 'application/json',
+          content: JSON.stringify(scenes, null, 2),
+        },
+        {
+          name: 'analyzed-video-scenes.txt',
+          mimeType: 'text/plain',
+          content: combinedOutput,
+        },
+      ],
+    });
+    res.json(payload);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Video Scene Analyzer video analysis error:', message);
@@ -52,7 +120,23 @@ router.post('/regenerate-visual-prompt', async (req: Request, res: Response) => 
     }
 
     const visualPrompt = await videoSceneAnalyzerService.regenerateVisualPrompt(segmentText);
-    res.json({ visualPrompt });
+    const payload = { visualPrompt };
+    await persistGenerationHistory({
+      req,
+      sourceTool: 'video-scene-analyzer.regenerate-visual-prompt',
+      input: { segmentText },
+      output: payload,
+      combinedOutput: visualPrompt,
+      outputFormats: ['text'],
+      files: [
+        {
+          name: 'visual-prompt.txt',
+          mimeType: 'text/plain',
+          content: visualPrompt,
+        },
+      ],
+    });
+    res.json(payload);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Video Scene Analyzer prompt regeneration error:', message);
@@ -71,7 +155,24 @@ router.post('/generate-image', async (req: Request, res: Response) => {
     }
 
     const imageUrl = await videoSceneAnalyzerService.generateImage(prompt, styleModifier, aspectRatio);
-    res.json({ imageUrl });
+    const payload = { imageUrl };
+    await persistGenerationHistory({
+      req,
+      sourceTool: 'video-scene-analyzer.generate-image',
+      input: { prompt, styleModifier, aspectRatio },
+      output: payload,
+      combinedOutput: imageUrl,
+      outputFormats: ['url'],
+      files: [
+        {
+          name: 'generated-image-url.txt',
+          mimeType: 'text/plain',
+          content: imageUrl,
+          url: imageUrl,
+        },
+      ],
+    });
+    res.json(payload);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Video Scene Analyzer image generation error:', message);
@@ -90,7 +191,24 @@ router.post('/generate-video', async (req: Request, res: Response) => {
     }
 
     const videoUrl = await videoSceneAnalyzerService.generateVideo(prompt, styleModifier, aspectRatio);
-    res.json({ videoUrl });
+    const payload = { videoUrl };
+    await persistGenerationHistory({
+      req,
+      sourceTool: 'video-scene-analyzer.generate-video',
+      input: { prompt, styleModifier, aspectRatio },
+      output: payload,
+      combinedOutput: videoUrl,
+      outputFormats: ['url'],
+      files: [
+        {
+          name: 'generated-video-url.txt',
+          mimeType: 'text/plain',
+          content: videoUrl,
+          url: videoUrl,
+        },
+      ],
+    });
+    res.json(payload);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Video Scene Analyzer video generation error:', message);
