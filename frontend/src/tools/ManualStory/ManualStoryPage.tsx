@@ -154,7 +154,7 @@ export function ManualStoryPage() {
 
   return (
     <WorkspaceLayout>
-      <section className="w-full border border-[#222222] bg-[#111111] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)] sm:p-6 md:p-8 lg:p-10">
+      <section className="h-full w-full overflow-y-auto border border-[#222222] bg-[#111111] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.35)] sm:p-6 md:p-8 lg:p-10">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="font-['Bebas_Neue'] text-[28px] tracking-[1px] sm:text-[36px] lg:text-[40px]">
